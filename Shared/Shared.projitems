@@ -19,5 +19,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)ListView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ListView.LazyLoad.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ListViewItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Rotator.cs" />
   </ItemGroup>
 </Project>
