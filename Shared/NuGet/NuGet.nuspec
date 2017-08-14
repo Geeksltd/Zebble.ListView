@@ -2,13 +2,13 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>Zebble.ListView</id>
-    <version>3.17.122</version>
-    <title>ListView for Zebble for Xamarin</title>
+    <version>3.17.124</version>
+    <title>List View for Zebble (Xamarin)</title>
     <projectUrl>https://github.com/Geeksltd/Zebble.ListView</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/Geeksltd/Zebble.ListView/master/Shared/NuGet/Icon.png</iconUrl>
     <copyright>Copyright ©2017 Mobile App Technologies Ltd - All rights reserved.</copyright>
     <description>Renders a data source vertically based on a Template class.</description>
-    <authors>Mobile App Technologies Ltd</authors>  
+    <authors>Mobile App Technologies Ltd</authors>
   </metadata>
   <files>
     <file src="..\..\lib\Zebble.ListView.iOS.*" target="lib\Xamarin.iOS10\" />
