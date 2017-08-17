@@ -9,12 +9,13 @@
         where TTemplate : View, IListViewItem<TSource>, new()
         where TSource : class, new()
     {
+        TTemplate SelectedRow;
         readonly AsyncEvent AutoContentHeightChanged = new AsyncEvent();
         public int ItemsToDisplay = 3;
 
         public readonly AsyncEvent SelectionChanged = new AsyncEvent(ConcurrentEventRaisePolicy.Queue);
 
-        public readonly ScrollView Scroller = new ScrollView { PartialPagingEnabled = true, PagingEnabled = true };
+        public readonly ScrollView Scroller = new ScrollView();
         public readonly ListView<TSource, TTemplate> List = new ListView<TSource, TTemplate>();
 
         public override async Task OnInitializing()
@@ -24,11 +25,15 @@
             await Add(Scroller);
             await Scroller.Add(List);
 
-            Scroller.UserScrolledVertically.HandleWith(SelectTheMiddleItem);
-            Scroller.ScrollEnded.HandleWith(SelectTheMiddleItem);
+            Scroller.UserScrolledVertically.HandleWith(HighlightMiddleItem);
+            Scroller.ScrollEnded.HandleWith(async () =>
+            {
+                await SetScrollPosition();
+                SelectionChanged.Raise();
+            });
         }
 
-        public TSource SelectedItem { get; private set; }
+        public TSource SelectedItem => SelectedRow?.Item;
 
         public Task SetSource(IEnumerable<TSource> dataSource)
         {
@@ -50,16 +55,11 @@
 
         int PlaceHoldersCount => (int)Math.Floor(ItemsToDisplay / 2.0);
 
-        void SelectTheMiddleItem()
+        void HighlightMiddleItem()
         {
             var middle = FindMiddleItem();
-            if (middle == null) return;
-            if (SelectedItem == middle.Item) return;
-
-            HighlightItem(middle);
-
-            SelectedItem = middle.Item;
-            SelectionChanged.Raise();
+            if (middle != null || SelectedItem == middle.Item) return;
+            else HighlightItem(middle);
         }
 
         TTemplate FindMiddleItem()
@@ -71,6 +71,7 @@
 
         void HighlightItem(TTemplate item)
         {
+            SelectedRow = item;
             List.ItemViews.Except(item).Do(x => x.UnsetPseudoCssState("active"));
             item.Perform(x => x.SetPseudoCssState("active").RunInParallel());
         }
@@ -80,37 +81,33 @@
             await base.OnPreRender();
             var item = List.ItemViews.FirstOrDefault();
             if (item != null)
-            {
-                Scroller.Height.BindTo(item.Height, x =>
-                {
-                    Scroller.PartialPagingSize = item.CalculateTotalHeight();
-                    return Scroller.PartialPagingSize * ItemsToDisplay;
-                });
-            }
+                Scroller.Height.BindTo(item.Height, x => item.CalculateTotalHeight() * ItemsToDisplay);
         }
 
-        public void PreSelect(Func<TSource, bool> selectedCriteria)
+        public Task PreSelect(Func<TSource, bool> selectedCriteria)
         {
-            PreSelect(List.ItemViews.FirstOrDefault(x => selectedCriteria(x.Item)));
+            return PreSelect(List.ItemViews.FirstOrDefault(x => selectedCriteria(x.Item)));
         }
 
-        void PreSelect(TTemplate item)
+        Task PreSelect(TTemplate item)
         {
-            if (item == null) return;
+            if (item == null) return Task.CompletedTask;
 
-            SelectedItem = item.Item;
+            HighlightItem(item);
+            return SetScrollPosition();
+        }
 
-            var index = List.ItemViews.IndexOf(item);
+        Task SetScrollPosition()
+        {
+            var index = List.ItemViews.IndexOf(SelectedRow);
             if (index == -1)
             {
-                Device.Log.Error("Item '" + item + "' does not exist in this rotator's list of items.");
-                return;
+                Device.Log.Error("Item '" + SelectedItem + "' does not exist in this rotator's list of items.");
+                return Task.CompletedTask;
             }
 
             index -= PlaceHoldersCount;
-
-            Scroller.ScrollY = index * ItemHeight;
-            HighlightItem(item);
+            return Scroller.ScrollTo(yOffset: index * ItemHeight, animate: true);
         }
 
         float ItemHeight => List.ItemViews.FirstOrDefault()?.ActualHeight ?? 0;
