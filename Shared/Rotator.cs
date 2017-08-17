@@ -58,20 +58,19 @@
         void HighlightMiddleItem()
         {
             var middle = FindMiddleItem();
-            if (middle != null || SelectedItem == middle.Item) return;
-            else HighlightItem(middle);
+            if (middle != null && SelectedRow != middle) HighlightItem(middle);
         }
 
         TTemplate FindMiddleItem()
         {
             var scrollMiddle = Scroller.ScrollY + ActualHeight / 2;
-
             return List.ItemViews.WithMin(x => Math.Abs((x.ActualY + x.ActualHeight / 2) - scrollMiddle));
         }
 
         void HighlightItem(TTemplate item)
         {
             SelectedRow = item;
+
             List.ItemViews.Except(item).Do(x => x.UnsetPseudoCssState("active"));
             item.Perform(x => x.SetPseudoCssState("active").RunInParallel());
         }

@@ -9,6 +9,7 @@
     <Import_RootNamespace>Zebble.Plugin</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)NuGet\LocalTest.bat" />
     <None Include="$(MSBuildThisFileDirectory)NuGet\NuGet.nuspec" />
     <None Include="$(MSBuildThisFileDirectory)NuGet\CreatePackage.bat" />
   </ItemGroup>
