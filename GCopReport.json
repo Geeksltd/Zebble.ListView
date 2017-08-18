@@ -2,7 +2,14 @@
   "Items": [
     {
       "Analyzer": "MeaningfulNameForVariablesAnalyzer",
-      "OccurrenceCount": 1,
+      "OccurrenceCount": 299,
+      "Exceptions": null,
+      "SentToServer": true,
+      "InstallationName": "PAYMON"
+    },
+    {
+      "Analyzer": "AsyncAwaitMethodAnalyzer",
+      "OccurrenceCount": 13,
       "Exceptions": null,
       "SentToServer": true,
       "InstallationName": "PAYMON"
