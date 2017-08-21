@@ -80,14 +80,14 @@ namespace Zebble
             foreach (var item in AllChildren.Except(EmptyTextLabel).Reverse().ToArray())
                 await Remove(item);
 
-            ListHeight = 0;
+            LazyRenderedItemsTotalHeight = 0;
             VisibleItems = 0;
 
             EmptyTextLabel.Style.Ignored = dataSource.Any();
 
             if (LazyLoad)
             {
-                if (IsShown) await LazyLoadInitialItems();
+                if (IsShown) await LazyLoadInitialItems();                
             }
             else foreach (var item in dataSource.ToArray()) await Add(CreateItem(item));
 

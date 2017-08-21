@@ -7,7 +7,7 @@ namespace Zebble
     partial class ListView<TSource, TRowTemplate>
     {
         int VisibleItems = 0;
-        float ListHeight = 0;
+        float LazyRenderedItemsTotalHeight = 0;
         bool IsLazyLoadingMore;
         bool lazyLoad;
         AsyncLock LazyLoadingSyncLock = new AsyncLock();
@@ -29,7 +29,11 @@ namespace Zebble
             }
         }
 
-        Task LazyLoadInitialItems() => UIWorkBatch.Run(DoLazyLoadInitialItems);
+        async Task LazyLoadInitialItems()
+        {
+            await UIWorkBatch.Run(DoLazyLoadInitialItems);
+            await OnLazyVisibleItemsChanged();
+        }
 
         async Task DoLazyLoadInitialItems()
         {
@@ -38,16 +42,19 @@ namespace Zebble
                 var visibleHeight = FindParent<ScrollView>()?.ActualHeight ?? Page?.ActualHeight ?? Device.Screen.Height;
                 visibleHeight -= ActualY;
 
-                while (ListHeight < visibleHeight && VisibleItems < dataSource.Count())
+                while (LazyRenderedItemsTotalHeight < visibleHeight && VisibleItems < dataSource.Count())
                 {
                     var item = CreateItem(dataSource[VisibleItems]);
                     await Add(item);
-                    ListHeight += item.ActualHeight;
+                    LazyRenderedItemsTotalHeight += item.ActualHeight;
 
                     VisibleItems++;
+                    await OnLazyVisibleItemsChanged();
                 };
             }
         }
+
+        Task OnLazyVisibleItemsChanged() => (this as IAutoContentHeightProvider).Changed.Raise();
 
         protected override float CalculateContentAutoHeight()
         {
@@ -57,12 +64,18 @@ namespace Zebble
 
             if (lastItem == null) return 0;
 
-            lastItem.ApplyCssToBranch().Wait();
+            if (lastItem.Native == null)
+                lastItem.ApplyCssToBranch().Wait();
 
             if (lastItem.Height.AutoOption.HasValue || lastItem.Height.PercentageValue.HasValue)
                 Device.Log.Error("Items in a lazy loaded list view must have an explicit height value.");
 
-            return Padding.Vertical() + dataSource.Count * lastItem.CalculateTotalHeight();
+            var itemHeight = lastItem.CalculateTotalHeight();
+
+            var logicalRows = Math.Max(VisibleItems, (int)(Root.ActualHeight / itemHeight)) + 5;
+            logicalRows = logicalRows.LimitMax(dataSource.Count);
+
+            return Padding.Vertical() + logicalRows * itemHeight;
         }
 
         async Task OnUserScrolledVertically(ScrollView scroller)
@@ -72,9 +85,9 @@ namespace Zebble
 
             var staticallyVisible = scroller.ActualHeight - ActualY;
 
-            var shouldShowUpto = scroller.ScrollY + staticallyVisible + 10 /* Margin to ensure something is there */;
+            var shouldShowUpto = scroller.ScrollY + staticallyVisible + 100 /* Margin to ensure something is there */;
 
-            while (shouldShowUpto >= ListHeight)
+            while (shouldShowUpto >= LazyRenderedItemsTotalHeight)
             {
                 if (!await LazyLoadMore()) break;
                 if (Device.Platform == DevicePlatform.IOS) await Task.Delay(Animation.OneFrame);
@@ -93,10 +106,14 @@ namespace Zebble
 
                 if (next == null) return false;
 
-                VisibleItems++;
+                await UIWorkBatch.Run(async () =>
+                {
+                    VisibleItems++;
+                    var item = await AddItem(next);
+                    LazyRenderedItemsTotalHeight += item.ActualHeight;
+                });
 
-                var item = await AddItem(next);
-                ListHeight += item.ActualHeight;
+                await OnLazyVisibleItemsChanged();
             }
 
             return true;
