@@ -65,7 +65,7 @@ namespace Zebble
 
             await Task.WhenAll(
                 Content.Animate(SwipeAnimationDuration, x => x.X(-slideInWidth)),
-                SlideIn.Animate(SwipeAnimationDuration, x => x.X(CalculateAbsoluteX() + ActualWidth - slideInWidth))
+                SlideIn.Animate(SwipeAnimationDuration, x => x.X((CalculateAbsoluteX() + ActualWidth - slideInWidth) - Padding.Right()))
             );
         }
 
