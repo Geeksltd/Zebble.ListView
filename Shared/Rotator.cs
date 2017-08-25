@@ -85,7 +85,12 @@
 
         public Task PreSelect(Func<TSource, bool> selectedCriteria)
         {
-            return PreSelect(List.ItemViews.FirstOrDefault(x => selectedCriteria(x.Item)));
+            var item = List.ItemViews.FirstOrDefault(x => selectedCriteria(x.Item));
+
+            if (item == null)
+                Device.Log.Warning("The selected item was not found in the list of items.");
+
+            return PreSelect(item);
         }
 
         Task PreSelect(TTemplate item)
