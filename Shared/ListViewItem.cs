@@ -56,7 +56,7 @@ namespace Zebble
 
             if (SlideIn.parent == null)
             {
-                SlideIn.Size(100.Percent());
+                SlideIn.Size(100.Percent()).X(CalculateAbsoluteX() + ActualWidth);
                 await base.AddAt(1, SlideIn, awaitNative: true); // Lazy loaded the first time only.
             }
 
