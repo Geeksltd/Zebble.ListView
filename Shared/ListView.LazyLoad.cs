@@ -45,7 +45,9 @@ namespace Zebble
                 while (LazyRenderedItemsTotalHeight < visibleHeight && VisibleItems < dataSource.Count())
                 {
                     var item = CreateItem(dataSource[VisibleItems]);
-                    await Add(item);
+
+                    await ChangeInBatch(() => Add(item));
+
                     LazyRenderedItemsTotalHeight += item.ActualHeight;
 
                     VisibleItems++;
@@ -106,12 +108,14 @@ namespace Zebble
 
                 if (next == null) return false;
 
-                await UIWorkBatch.Run(async () =>
+                TRowTemplate item = null;
+                await ChangeInBatch(() => UIWorkBatch.Run(async () =>
                 {
                     VisibleItems++;
-                    var item = await AddItem(next);
-                    LazyRenderedItemsTotalHeight += item.ActualHeight;
-                });
+                    item = await AddItem(next);
+                }));
+
+                LazyRenderedItemsTotalHeight += item.ActualHeight;
 
                 await OnLazyVisibleItemsChanged();
             }

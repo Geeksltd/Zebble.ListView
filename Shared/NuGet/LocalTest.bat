@@ -1,1 +1,1 @@
-copy /y ..\..\Lib\Zebble.ListView.UWP.* %userprofile%\.nuget\packages\Zebble.ListView\3.17.134\lib\UAP10
+copy /y ..\..\Lib\Zebble.ListView.UWP.* %userprofile%\.nuget\packages\Zebble.ListView\3.17.137\lib\UAP10
