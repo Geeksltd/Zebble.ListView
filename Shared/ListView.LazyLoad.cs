@@ -31,7 +31,7 @@ namespace Zebble
 
         async Task LazyLoadInitialItems()
         {
-            await UIWorkBatch.Run(DoLazyLoadInitialItems);
+            await DoLazyLoadInitialItems();
             await OnLazyVisibleItemsChanged();
         }
 
@@ -46,7 +46,7 @@ namespace Zebble
                 {
                     var item = CreateItem(dataSource[VisibleItems]);
 
-                    await ChangeInBatch(() => Add(item));
+                    await UIWorkBatch.Run(() => Add(item));
 
                     LazyRenderedItemsTotalHeight += item.ActualHeight;
 
@@ -109,11 +109,11 @@ namespace Zebble
                 if (next == null) return false;
 
                 TRowTemplate item = null;
-                await ChangeInBatch(() => UIWorkBatch.Run(async () =>
+                await UIWorkBatch.Run(async () =>
                 {
                     VisibleItems++;
                     item = await AddItem(next);
-                }));
+                }, awaitNative: true);
 
                 LazyRenderedItemsTotalHeight += item.ActualHeight;
 
