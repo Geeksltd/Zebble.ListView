@@ -29,7 +29,11 @@ namespace Zebble
 
         protected override string GetStringSpecifier() => typeof(TSource).Name;
 
-        public Task<TRowTemplate> AddItem(TSource item) => Add(CreateItem(item));
+        public Task<TRowTemplate> AddItem(TSource item)
+        {
+            dataSource.Insert(dataSource.Count, item);
+            return Add(CreateItem(item));
+        }
 
         public Task Remove(TSource item, bool awaitNative = true)
         {
