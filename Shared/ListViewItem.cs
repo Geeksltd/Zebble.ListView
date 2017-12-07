@@ -37,16 +37,28 @@ namespace Zebble
             }
         }
 
-        async Task Swipped(SwipedEventArgs args)
+        async Task OnPanning(PannedEventArgs args)
         {
-            if (args.Direction == Direction.Left) await ShowSlideInContent();
-            else if (args.Direction == Direction.Right) await HideSlideInContent();
+            var direction = await CheckDirection(args.Velocity);
+            if (direction == null) return;
+            if (direction == Direction.Left) await ShowSlideInContent();
+            else if (direction == Direction.Right) await HideSlideInContent();
+        }
+
+        Task<Direction?> CheckDirection(Point velocity)
+        {
+            Direction? result;
+            if (velocity.X > 0) result = Direction.Right;
+            else if (velocity.X < 0) result = Direction.Left;
+            else result = null;
+
+            return Task.FromResult(result);
         }
 
         public override async Task OnPreRender()
         {
             await base.OnPreRender();
-            if (SlideIn.AllChildren.Any()) Swiped.Handle(Swipped);
+            if (SlideIn.AllChildren.Any()) Panning.Handle(OnPanning);
         }
 
         async Task ShowSlideInContent()

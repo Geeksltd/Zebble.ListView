@@ -9,14 +9,14 @@
     },
     {
       "Analyzer": "AsyncAwaitMethodAnalyzer",
-      "OccurrenceCount": 121,
+      "OccurrenceCount": 346,
       "Exceptions": null,
       "SentToServer": true,
       "InstallationName": "PAYMON"
     },
     {
       "Analyzer": "UnusedMethodsAnalyzer",
-      "OccurrenceCount": 42,
+      "OccurrenceCount": 251,
       "Exceptions": null,
       "SentToServer": true,
       "InstallationName": "PAYMON"
