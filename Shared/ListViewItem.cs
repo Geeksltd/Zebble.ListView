@@ -56,16 +56,24 @@ namespace Zebble
 
         async Task OnPanFinished(PannedEventArgs args)
         {
+            if (ShouldTapBegin)
+            {
+                if (RightSlideVisible)
+                {
+                    RightSlideIn.AllChildren.First().RaiseTapped();
+                }
+                else if (LeftSlideVisible)
+                {
+                    LeftSlideIn.AllChildren.First().RaiseTapped();
+                }
+
+                ShouldTapBegin = false;
+            }
+
             if (ShouldRelease)
             {
                 RightSlideVisible = LeftSlideVisible = true;
                 await HideSlideInContent();
-            }
-
-            if (ShouldTapBegin && (RightSlideVisible || LeftSlideVisible))
-            {
-                //TODO Default functionality should be execute.
-                ShouldTapBegin = false;
             }
         }
 
@@ -175,7 +183,7 @@ namespace Zebble
         {
             if (LeftSlideVisible && RightSlideVisible) await Task.WhenAll(HideLeftSlideInContent(), HideRightSlideInContent());
             if (LeftSlideVisible) await HideLeftSlideInContent();
-            else if (RightSlideVisible) await HideRightSlideInContent(); 
+            else if (RightSlideVisible) await HideRightSlideInContent();
 
             ShouldRelease = RightSlideVisible = LeftSlideVisible = false;
         }

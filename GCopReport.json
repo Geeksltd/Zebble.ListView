@@ -9,7 +9,7 @@
     },
     {
       "Analyzer": "AsyncAwaitMethodAnalyzer",
-      "OccurrenceCount": 1949,
+      "OccurrenceCount": 1978,
       "Exceptions": null,
       "SentToServer": true,
       "InstallationName": "PAYMON"
