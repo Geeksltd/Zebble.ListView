@@ -91,7 +91,7 @@ namespace Zebble
 
             if (LazyLoad)
             {
-                if (IsShown) await LazyLoadInitialItems();                
+                if (IsShown) await LazyLoadInitialItems();
             }
             else foreach (var item in dataSource.ToArray()) await Add(CreateItem(item));
 

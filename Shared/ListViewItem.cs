@@ -123,14 +123,13 @@ namespace Zebble
                 else ShouldRelease = true;
             }
 
-            //First time only.
+            // First time only.
             if (RightSlideIn.parent == null)
             {
                 RightSlideIn.Size(100.Percent()).X(CalculateAbsoluteX() + ActualWidth);
                 await base.AddAt(AllChildren.Count, RightSlideIn, awaitNative: true); // Lazy loaded the first time only.
                 if (OriginalContentX == null) OriginalContentX = Content.ActualX;
             }
-
 
             Content.X(Content.X.CurrentValue - distance);
             RightSlideIn.X(RightSlideIn.X.CurrentValue - distance);
@@ -165,7 +164,7 @@ namespace Zebble
                 else ShouldRelease = true;
             }
 
-            //First time only.
+            // First time only.
             if (LeftSlideIn.parent == null)
             {
                 await base.AddAt(AllChildren.Count, LeftSlideIn, awaitNative: true); // Lazy loaded the first time only.

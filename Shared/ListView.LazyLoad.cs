@@ -6,7 +6,7 @@ namespace Zebble
 
     partial class ListView<TSource, TRowTemplate>
     {
-        int VisibleItems = 0;
+        int VisibleItems;
         float LazyRenderedItemsTotalHeight = 0;
         bool IsLazyLoadingMore;
         bool lazyLoad;
@@ -52,7 +52,9 @@ namespace Zebble
 
                     VisibleItems++;
                     await OnLazyVisibleItemsChanged();
-                };
+                }
+
+;
             }
         }
 
