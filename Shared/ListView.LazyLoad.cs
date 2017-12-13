@@ -12,6 +12,11 @@ namespace Zebble
         bool lazyLoad;
         AsyncLock LazyLoadingSyncLock = new AsyncLock();
 
+        /// <summary>
+        /// This event will be fired when all datasource items are rendered and added to the list. 
+        /// </summary>
+        public readonly AsyncEvent LazyLoadEnded = new AsyncEvent();
+
         public bool LazyLoad
         {
             get => lazyLoad;
@@ -108,7 +113,11 @@ namespace Zebble
             {
                 lock (DataSourceSyncLock) next = dataSource.Skip(VisibleItems).FirstOrDefault();
 
-                if (next == null) return false;
+                if (next == null)
+                {
+                    await LazyLoadEnded.Raise();
+                    return false;
+                }
 
                 TRowTemplate item = null;
                 await UIWorkBatch.Run(async () =>
