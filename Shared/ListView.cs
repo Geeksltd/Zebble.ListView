@@ -29,12 +29,28 @@ namespace Zebble
 
         protected override string GetStringSpecifier() => typeof(TSource).Name;
 
-        public Task<TRowTemplate> AddItem(TSource item)
+        /// <summary>
+        /// Adds a new Item to the List and also adds it to the DataSource
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public Task<TRowTemplate> Add(TSource item)
         {
             dataSource.Insert(dataSource.Count, item);
+            return AddItem(item);
+        }
+
+        Task<TRowTemplate> AddItem(TSource item)
+        {
             return Add(CreateItem(item));
         }
 
+        /// <summary>
+        /// Removes an Items from the list and its DataSource
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="awaitNative"></param>
+        /// <returns></returns>
         public Task Remove(TSource item, bool awaitNative = true)
         {
             lock (DataSourceSyncLock)
@@ -77,9 +93,11 @@ namespace Zebble
             }
         }
 
-        public async Task UpdateSource(IEnumerable<TSource> source)
+        public async Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true)
         {
             lock (DataSourceSyncLock) dataSource = new ConcurrentList<TSource>(source ?? Enumerable.Empty<TSource>());
+
+            if (!reRenderItems) return;
 
             foreach (var item in AllChildren.Except(EmptyTextLabel).Reverse().ToArray())
                 await Remove(item);
