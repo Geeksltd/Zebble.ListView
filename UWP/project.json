@@ -1,7 +1,7 @@
 ﻿{
   "dependencies": {
     "Xamarin.Build.Download": "0.4.7",
-    "Zebble": "4.2.362"
+    "Zebble": "4.2.373"
   },
   "frameworks": {
     "uap10.0.10240": {}
