@@ -8,13 +8,46 @@ namespace Zebble
 
     public abstract class ListView : Stack
     {
-        public readonly TextView EmptyTextLabel = new TextView { Id = "EmptyTextLabel" };
+        public readonly AsyncEvent<EmptyTemplateChangedArg> EmptyTemplateChanged = new AsyncEvent<EmptyTemplateChangedArg>();
 
         public string EmptyText
         {
-            get => EmptyTextLabel.Text;
-            set => EmptyTextLabel.Text = value;
+            get
+            {
+                var emptyTextView = emptyTemplate as TextView;
+                if (emptyTextView == null) return string.Empty;
+                else return emptyTextView.Text;
+            }
+            set
+            {
+                var emptyTextView = emptyTemplate as TextView;
+                if (emptyTextView == null) return;
+                else emptyTextView.Text = value;
+            }
         }
+
+        protected View emptyTemplate = new TextView { Id = "EmptyTextLabel" };
+        public View EmptyTemplate
+        {
+            get => emptyTemplate;
+            set
+            {
+                EmptyTemplateChanged.Raise(new EmptyTemplateChangedArg(emptyTemplate, value));
+                emptyTemplate = value;
+            }
+        }
+
+        public class EmptyTemplateChangedArg
+        {
+            public EmptyTemplateChangedArg(View oldView, View newView)
+            {
+                OldView = oldView;
+                NewView = newView;
+            }
+
+            public View OldView { get; set; }
+            public View NewView { get; set; }
+        };
     }
 
     public partial class ListView<TSource, TRowTemplate> : ListView
@@ -23,7 +56,7 @@ namespace Zebble
         ConcurrentList<TSource> dataSource = new ConcurrentList<TSource>();
         object DataSourceSyncLock = new object();
 
-        public ListView() : base() { Shown.Handle(OnShown); }
+        public ListView() : base() { Shown.Handle(OnShown); EmptyTemplateChanged.Handle(OnEmptyTemplateChanged); }
 
         TRowTemplate CreateItem(TSource data) => new TRowTemplate { Item = data }.CssClass("list-item");
 
@@ -40,10 +73,7 @@ namespace Zebble
             return AddItem(item);
         }
 
-        Task<TRowTemplate> AddItem(TSource item)
-        {
-            return Add(CreateItem(item));
-        }
+        Task<TRowTemplate> AddItem(TSource item) => Add(CreateItem(item));
 
         /// <summary>
         /// Removes an Items from the list and its DataSource
@@ -70,7 +100,28 @@ namespace Zebble
         public override async Task OnInitializing()
         {
             await base.OnInitializing();
-            await Add(EmptyTextLabel.Ignored(dataSource.Any()));
+            await Add(emptyTemplate.Ignored(dataSource.Any()));
+        }
+
+        async Task OnEmptyTemplateChanged(EmptyTemplateChangedArg args)
+        {
+            if (!AllChildren.Contains(args.OldView)) return;
+
+            await Remove(args.OldView);
+            await Add(args.NewView.Ignored(dataSource.Any()));
+
+            await UpdateEmptyViewHeight();
+        }
+
+        async Task UpdateEmptyViewHeight()
+        {
+            if (dataSource.Any()) return;
+
+            if (LazyLoad)
+            {
+                this.Height(Height.CurrentValue + emptyTemplate.ActualHeight);
+                await (this as IAutoContentHeightProvider).Changed.Raise();
+            }
         }
 
         public IEnumerable<TRowTemplate> ItemViews => this.AllChildren<TRowTemplate>() /* for concurrency */ .ToArray();
@@ -99,13 +150,13 @@ namespace Zebble
 
             if (!reRenderItems) return;
 
-            foreach (var item in AllChildren.Except(EmptyTextLabel).Reverse().ToArray())
+            foreach (var item in AllChildren.Except(emptyTemplate).Reverse().ToArray())
                 await Remove(item);
 
             LazyRenderedItemsTotalHeight = 0;
             VisibleItems = 0;
 
-            EmptyTextLabel.Style.Ignored = dataSource.Any();
+            emptyTemplate.Ignored(dataSource.Any());
 
             if (LazyLoad)
             {
@@ -113,7 +164,9 @@ namespace Zebble
             }
             else foreach (var item in dataSource.ToArray()) await Add(CreateItem(item));
 
-            EmptyTextLabel.Ignored(dataSource.Any());
+            emptyTemplate.Ignored(dataSource.Any());
+
+            await UpdateEmptyViewHeight();
         }
 
         public Task Insert(int index, TSource item)
