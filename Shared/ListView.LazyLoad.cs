@@ -3,6 +3,7 @@ namespace Zebble
     using System;
     using System.Linq;
     using System.Threading.Tasks;
+    using Zebble.Device;
 
     partial class ListView<TSource, TRowTemplate>
     {
@@ -28,7 +29,7 @@ namespace Zebble
             if (LazyLoad)
             {
                 var scroller = FindParent<ScrollView>();
-                scroller?.UserScrolledVertically.HandleOn(Device.ThreadPool, () => OnUserScrolledVertically(scroller));
+                scroller?.UserScrolledVertically.HandleOn(Thread.Pool, () => OnUserScrolledVertically(scroller));
 
                 await LazyLoadInitialItems();
             }
@@ -99,7 +100,7 @@ namespace Zebble
             while (shouldShowUpto >= LazyRenderedItemsTotalHeight)
             {
                 if (!await LazyLoadMore()) break;
-                if (Device.Platform == DevicePlatform.IOS) await Task.Delay(Animation.OneFrame);
+                if (OS.Platform.IsIOS()) await Task.Delay(Animation.OneFrame);
             }
 
             IsLazyLoadingMore = false;
