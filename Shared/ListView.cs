@@ -10,32 +10,9 @@ namespace Zebble
     {
         public readonly AsyncEvent<EmptyTemplateChangedArg> EmptyTemplateChanged = new AsyncEvent<EmptyTemplateChangedArg>();
 
-        public string EmptyText
-        {
-            get
-            {
-                var emptyTextView = emptyTemplate as TextView;
-                if (emptyTextView == null) return string.Empty;
-                else return emptyTextView.Text;
-            }
-            set
-            {
-                var emptyTextView = emptyTemplate as TextView;
-                if (emptyTextView == null) return;
-                else emptyTextView.Text = value;
-            }
-        }
+        protected View emptyTemplate => FindDescendent<EmptyTemplate>();
 
-        protected View emptyTemplate = new TextView { Id = "EmptyTextLabel" };
-        public View EmptyTemplate
-        {
-            get => emptyTemplate;
-            set
-            {
-                EmptyTemplateChanged.Raise(new EmptyTemplateChangedArg(emptyTemplate, value));
-                emptyTemplate = value;
-            }
-        }
+        public class EmptyTemplate : Canvas { }
 
         public class EmptyTemplateChangedArg
         {
@@ -100,7 +77,7 @@ namespace Zebble
         public override async Task OnInitializing()
         {
             await base.OnInitializing();
-            await Add(emptyTemplate.Ignored(dataSource.Any()));
+            emptyTemplate?.Ignored(dataSource.Any());
         }
 
         async Task OnEmptyTemplateChanged(EmptyTemplateChangedArg args)
@@ -119,7 +96,7 @@ namespace Zebble
 
             if (LazyLoad)
             {
-                this.Height(Height.CurrentValue + emptyTemplate.ActualHeight);
+                this.Height(Height.CurrentValue + emptyTemplate?.ActualHeight ?? 0);
                 await (this as IAutoContentHeightProvider).Changed.Raise();
             }
         }
@@ -156,7 +133,7 @@ namespace Zebble
             LazyRenderedItemsTotalHeight = 0;
             VisibleItems = 0;
 
-            emptyTemplate.Ignored(dataSource.Any());
+            emptyTemplate?.Ignored(dataSource.Any());
 
             if (LazyLoad)
             {
@@ -164,7 +141,7 @@ namespace Zebble
             }
             else foreach (var item in dataSource.ToArray()) await Add(CreateItem(item));
 
-            emptyTemplate.Ignored(dataSource.Any());
+            emptyTemplate?.Ignored(dataSource.Any());
 
             await UpdateEmptyViewHeight();
         }
