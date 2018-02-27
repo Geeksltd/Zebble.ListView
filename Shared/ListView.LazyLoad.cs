@@ -11,12 +11,18 @@ namespace Zebble
         float LazyRenderedItemsTotalHeight = 0;
         bool IsLazyLoadingMore;
         bool lazyLoad;
+        float ItemHeight = 0;
         AsyncLock LazyLoadingSyncLock = new AsyncLock();
 
         /// <summary>
         /// This event will be fired when all datasource items are rendered and added to the list. 
         /// </summary>
         public readonly AsyncEvent LazyLoadEnded = new AsyncEvent();
+
+        /// <summary>
+        /// Number of extra items to be loaded outside of visible screen. 
+        /// </summary>
+        public int LazyLoadOffset = 10;
 
         public bool LazyLoad
         {
@@ -60,8 +66,14 @@ namespace Zebble
                     await OnLazyVisibleItemsChanged();
                 }
 
-;
+                AddOffsetItem().RunInParallel();
             }
+        }
+
+        async Task AddOffsetItem()
+        {
+            for (int i = 0; i < LazyLoadOffset; i++)
+                if (!await LazyLoadMore()) break;
         }
 
         Task OnLazyVisibleItemsChanged() => (this as IAutoContentHeightProvider).Changed.Raise();
@@ -78,14 +90,14 @@ namespace Zebble
                 lastItem.ApplyCssToBranch().Wait();
 
             if (lastItem.Height.AutoOption.HasValue || lastItem.Height.PercentageValue.HasValue)
-                Device.Log.Error("Items in a lazy loaded list view must have an explicit height value.");
+                Log.Error("Items in a lazy loaded list view must have an explicit height value.");
 
-            var itemHeight = lastItem.CalculateTotalHeight();
+            ItemHeight = lastItem.CalculateTotalHeight();
 
-            var logicalRows = Math.Max(VisibleItems, (int)(Root.ActualHeight / itemHeight)) + 5;
+            var logicalRows = Math.Max(VisibleItems, (int)(Root.ActualHeight / ItemHeight)) + 5;
             logicalRows = logicalRows.LimitMax(dataSource.Count);
 
-            return Padding.Vertical() + logicalRows * itemHeight;
+            return Padding.Vertical() + logicalRows * ItemHeight;
         }
 
         async Task OnUserScrolledVertically(ScrollView scroller)
@@ -96,6 +108,8 @@ namespace Zebble
             var staticallyVisible = scroller.ActualHeight - ActualY;
 
             var shouldShowUpto = scroller.ScrollY + staticallyVisible + 100 /* Margin to ensure something is there */;
+
+            shouldShowUpto += LazyLoadOffset * ItemHeight;
 
             while (shouldShowUpto >= LazyRenderedItemsTotalHeight)
             {
