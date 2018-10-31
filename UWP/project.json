@@ -1,8 +1,8 @@
 ﻿{
   "dependencies": {
-    "Microsoft.NETCore.UniversalWindowsPlatform": "6.0.6",
-    "Xamarin.Build.Download": "0.4.7",
-    "Zebble": "4.3.101"
+    "Microsoft.NETCore.UniversalWindowsPlatform": "6.1.9",
+    "Xamarin.Build.Download": "0.4.11",
+    "Zebble": "4.4.131"
   },
   "frameworks": {
     "uap10.0.10240": {}
