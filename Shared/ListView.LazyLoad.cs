@@ -76,7 +76,19 @@ namespace Zebble
                 if (!await LazyLoadMore()) break;
         }
 
-        Task OnLazyVisibleItemsChanged() => (this as IAutoContentHeightProvider).Changed.Raise();
+        Task OnLazyVisibleItemsChanged()
+        {
+            var provider = (this as IAutoContentHeightProvider);
+            if (provider != null)
+            {
+                if (provider.Changed.Handlers.Count == 0)
+                    Height.Set(Length.AutoStartegy.Content);
+
+                return provider.Changed.Raise();
+            }
+
+            return Task.CompletedTask;
+        }
 
         protected override float CalculateContentAutoHeight()
         {
