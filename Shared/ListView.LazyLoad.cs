@@ -81,7 +81,7 @@ namespace Zebble
             var provider = (this as IAutoContentHeightProvider);
             if (provider != null)
             {
-                if (provider.Changed.Handlers.Count == 0)
+                if (!provider.Changed.IsHandled())
                     Height.Set(Length.AutoStartegy.Content);
 
                 return provider.Changed.Raise();
