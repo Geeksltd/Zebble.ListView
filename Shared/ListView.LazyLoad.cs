@@ -114,26 +114,30 @@ namespace Zebble
 
         async Task OnUserScrolledVertically(ScrollView scroller)
         {
-            while (IsLazyLoadingMore) await Task.Delay(100);
+            if (IsLazyLoadingMore) return;
             IsLazyLoadingMore = true;
 
-            var staticallyVisible = scroller.ActualHeight - ActualY;
-
-            var shouldShowUpto = scroller.ScrollY + staticallyVisible + 100 /* Margin to ensure something is there */;
-
-            shouldShowUpto += LazyLoadOffset * ItemHeight;
-
-            while (shouldShowUpto >= LazyRenderedItemsTotalHeight)
+            try
             {
-                if (!await LazyLoadMore()) break;
-                if (OS.Platform.IsIOS()) await Task.Delay(Animation.OneFrame);
-            }
+                float shouldShowUpto() => LazyLoadOffset * ItemHeight + scroller.ScrollY + (scroller.ActualHeight - ActualY)
+                    + 100 /* Margin to ensure something is there */;
 
-            IsLazyLoadingMore = false;
+                await UIWorkBatch.Run(async () =>
+                {
+                    while (shouldShowUpto() >= LazyRenderedItemsTotalHeight)
+                    {
+                        if (!await LazyLoadMore()) break;
+                        if (OS.Platform.IsIOS()) await Task.Delay(Animation.OneFrame);
+                    }
+                });
+            }
+            finally { IsLazyLoadingMore = false; }
         }
 
         async Task<bool> LazyLoadMore()
         {
+            var before = DateTime.UtcNow;
+
             TSource next;
 
             using (await LazyLoadingSyncLock.LockAsync())
@@ -146,13 +150,8 @@ namespace Zebble
                     return false;
                 }
 
-                TRowTemplate item = null;
-                await UIWorkBatch.Run(async () =>
-                {
-                    VisibleItems++;
-                    item = await AddItem(next);
-                }, awaitNative: true);
-
+                VisibleItems++;
+                var item = await AddItem(next);
                 LazyRenderedItemsTotalHeight += item.ActualHeight;
 
                 await OnLazyVisibleItemsChanged();
