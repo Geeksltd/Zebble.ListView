@@ -122,14 +122,11 @@ namespace Zebble
                 float shouldShowUpto() => LazyLoadOffset * ItemHeight + scroller.ScrollY + (scroller.ActualHeight - ActualY)
                     + 100 /* Margin to ensure something is there */;
 
-                await UIWorkBatch.Run(async () =>
+                while (shouldShowUpto() >= LazyRenderedItemsTotalHeight)
                 {
-                    while (shouldShowUpto() >= LazyRenderedItemsTotalHeight)
-                    {
-                        if (!await LazyLoadMore()) break;
-                        if (OS.Platform.IsIOS()) await Task.Delay(Animation.OneFrame);
-                    }
-                });
+                    if (!await LazyLoadMore()) break;
+                    if (OS.Platform.IsIOS()) await Task.Delay(Animation.OneFrame);
+                }
             }
             finally { IsLazyLoadingMore = false; }
         }
