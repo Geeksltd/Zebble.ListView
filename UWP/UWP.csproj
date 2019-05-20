@@ -42,11 +42,12 @@
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>..\lib\</OutputPath>
     <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
-    <NoWarn>;2008;1998</NoWarn>
+    <NoWarn>;2008;1998;1591</NoWarn>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
+    <LangVersion>7.3</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <PlatformTarget>x86</PlatformTarget>
@@ -111,7 +112,7 @@
       <Version>0.4.11</Version>
     </PackageReference>
     <PackageReference Include="Zebble">
-      <Version>4.4.236</Version>
+      <Version>4.4.241</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="..\Shared\Shared.projitems" Label="Shared" Condition="Exists('..\Shared\Shared.projitems')" />
@@ -132,4 +133,7 @@
   <Target Name="BeforeBuild">
     <Error Condition="!Exists('..\Shared\Shared.projitems')" Text="This project references Shared that are missing on this computer." />
   </Target>
+  <PropertyGroup>
+    <PostBuildEvent>copy /y $(TargetDir)Zebble.ListView.UWP.* C:\Users\Administrator\.nuget\packages\zebble.listview\3.17.151\lib\UAP10</PostBuildEvent>
+  </PropertyGroup>
 </Project>

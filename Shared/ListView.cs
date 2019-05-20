@@ -31,33 +31,26 @@ namespace Zebble
         where TRowTemplate : View, IListViewItem<TSource>, new()
     {
         ConcurrentList<TSource> dataSource = new ConcurrentList<TSource>();
-        object DataSourceSyncLock = new object();
+        protected object DataSourceSyncLock = new object();
 
-        public ListView() : base() { Shown.Handle(OnShown); EmptyTemplateChanged.Handle(OnEmptyTemplateChanged); }
+        public ListView() : base() { EmptyTemplateChanged.Handle(OnEmptyTemplateChanged); }
 
-        TRowTemplate CreateItem(TSource data) => new TRowTemplate { Item = data }.CssClass("list-item");
+        protected virtual TRowTemplate CreateItem(TSource data) => new TRowTemplate { Item = data }.CssClass("list-item");
 
         protected override string GetStringSpecifier() => typeof(TSource).Name;
 
         /// <summary>
         /// Adds a new Item to the List and also adds it to the DataSource
-        /// </summary>
-        /// <param name="item"></param>
-        /// <returns></returns>
+        /// </summary> 
         public Task<TRowTemplate> Add(TSource item)
         {
             dataSource.Insert(dataSource.Count, item);
-            return AddItem(item);
+            return Add(CreateItem(item));
         }
-
-        Task<TRowTemplate> AddItem(TSource item) => Add(CreateItem(item));
 
         /// <summary>
         /// Removes an Items from the list and its DataSource
         /// </summary>
-        /// <param name="item"></param>
-        /// <param name="awaitNative"></param>
-        /// <returns></returns>
         public Task Remove(TSource item, bool awaitNative = true)
         {
             lock (DataSourceSyncLock)
@@ -80,28 +73,15 @@ namespace Zebble
             emptyTemplate?.Ignored(dataSource.Any());
         }
 
-        async Task OnEmptyTemplateChanged(EmptyTemplateChangedArg args)
+        protected virtual async Task OnEmptyTemplateChanged(EmptyTemplateChangedArg args)
         {
             if (!AllChildren.Contains(args.OldView)) return;
 
             await Remove(args.OldView);
             await Add(args.NewView.Ignored(dataSource.Any()));
-
-            await UpdateEmptyViewHeight();
         }
 
-        async Task UpdateEmptyViewHeight()
-        {
-            if (dataSource.Any()) return;
-
-            if (LazyLoad)
-            {
-                this.Height(Height.CurrentValue + emptyTemplate?.ActualHeight ?? 0);
-                await (this as IAutoContentHeightProvider).Changed.Raise();
-            }
-        }
-
-        public IEnumerable<TRowTemplate> ItemViews => this.AllChildren<TRowTemplate>() /* for concurrency */ .ToArray();
+        public virtual TRowTemplate[] ItemViews => this.AllChildren<TRowTemplate>() /* for concurrency */ .ToArray();
 
         public IEnumerable<TSource> DataSource
         {
@@ -123,27 +103,23 @@ namespace Zebble
 
         public async Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true)
         {
-            lock (DataSourceSyncLock) dataSource = new ConcurrentList<TSource>(source ?? Enumerable.Empty<TSource>());
+            lock (DataSourceSyncLock)
+                dataSource = new ConcurrentList<TSource>(source ?? Enumerable.Empty<TSource>());
 
             if (!reRenderItems) return;
 
-            foreach (var item in AllChildren.Except(emptyTemplate).Reverse().ToArray())
+            foreach (var item in ItemViews.Reverse().ToArray())
                 await Remove(item);
 
-            LazyRenderedItemsTotalHeight = 0;
-            VisibleItems = 0;
-
             emptyTemplate?.Ignored(dataSource.Any());
 
-            if (LazyLoad)
-            {
-                if (IsShown) await LazyLoadInitialItems();
-            }
-            else foreach (var item in dataSource.ToArray()) await Add(CreateItem(item));
+            await CreateInitialItems();
+        }
 
-            emptyTemplate?.Ignored(dataSource.Any());
-
-            await UpdateEmptyViewHeight();
+        protected virtual async Task CreateInitialItems()
+        {
+            foreach (var item in dataSource.ToArray())
+                await Add(CreateItem(item));
         }
 
         public Task Insert(int index, TSource item)
