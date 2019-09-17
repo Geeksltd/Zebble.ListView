@@ -19,6 +19,8 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)ListView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ListViewItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GeneralRecyclerListView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GeenralRecyclerListViewItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RecyclerListView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)RecyclerListViewItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Rotator.cs" />
