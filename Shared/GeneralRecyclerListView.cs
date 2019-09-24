@@ -9,14 +9,27 @@ namespace Zebble
 {
     public class GeneralRecyclerListView : ListView<object, GeneralRecyclerListViewItem>
     {
-        ScrollView scroller;
         bool IsProcessingLazyLoading;
         bool WasScrollingDown = true;
+        object CurrentItem;
         List<GeneralRecyclerListViewItem> SeparatedItemViews = new List<GeneralRecyclerListViewItem>();
+
+        /// <summary>
+        /// This event will be fired when all datasource items are rendered and added to the list. 
+        /// </summary>
+        public readonly AsyncEvent LazyLoadEnded = new AsyncEvent();
 
         public GeneralRecyclerListView() => PseudoCssState = "lazy-loaded";
 
         public Func<Type, Type> GetTemplateMapping;
+
+        ScrollView scroller;
+        ScrollView Scroller => scroller ?? (scroller = FindParent<ScrollView>())
+           ?? throw new Exception("Lazy loaded list view must be inside a scroll view");
+
+        float ScrollerPosition => Scroller.ScrollY - ActualY;
+
+        public override GeneralRecyclerListViewItem[] ItemViews => this.AllChildren<GeneralRecyclerListViewItem>().Except(v => v.Ignored).ToArray();
 
         public override async Task OnInitializing()
         {
@@ -30,20 +43,6 @@ namespace Zebble
             });
         }
 
-        /// <summary>
-        /// This event will be fired when all datasource items are rendered and added to the list. 
-        /// </summary>
-        public readonly AsyncEvent LazyLoadEnded = new AsyncEvent();
-
-        ScrollView Scroller => scroller ?? (scroller = FindParent<ScrollView>())
-            ?? throw new Exception("Lazy loaded list view must be inside a scroll view");
-
-        object GetNextItemToLoad()
-        {
-            lock (DataSourceSyncLock)
-                return DataSource.ElementAtOrDefault(DataSource.IndexOf(LowestShownItem) + 1);
-        }
-
         protected override async Task CreateInitialItems()
         {
             if (IsProcessingLazyLoading) return;
@@ -52,11 +51,10 @@ namespace Zebble
             try
             {
                 var visibleHeight = Scroller?.ActualHeight ?? Page?.ActualHeight ?? Device.Screen.Height;
-                visibleHeight -= ActualY;
 
                 while (LowestItemBottom < visibleHeight)
                 {
-                    var dataItem = GetNextItemToLoad();
+                    var dataItem = GetNextVisibleItemToLoad();
                     if (dataItem == null) break;
 
                     var recycled = Recycle(dataItem);
@@ -70,30 +68,46 @@ namespace Zebble
             }
         }
 
+        object GetNextVisibleItemToLoad()
+        {
+            lock (DataSourceSyncLock)
+            {
+                if (ItemViews.None()) return DataSource.FirstOrDefault();
+                return DataSource.FirstOrDefault(x => GetOffset(x) > Math.Max(ScrollerPosition, GetOffset(LowestShownItem)));
+            }
+        }
+
+        object GetPreviousVisibleItemToLoad()
+        {
+            lock (DataSourceSyncLock)
+            {
+                if (ItemViews.None() || (ScrollerPosition == 0 && TopestShownItem != DataSource.FirstOrDefault())) return DataSource.FirstOrDefault();
+                return DataSource.LastOrDefault(x => GetOffset(x) < Math.Min(ScrollerPosition, GetOffset(TopestShownItem)));
+            }
+        }
+
         protected override GeneralRecyclerListViewItem CreateItem(object data)
         {
-            var templateType = GetTemplateType(data.GetType());
+            var templateType = GetTemplateOfType(data.GetType());
             var template = (GeneralRecyclerListViewItem)Activator.CreateInstance(templateType);
             template.Item.Value = data;
 
             return template;
         }
 
-        protected virtual IEnumerable<GeneralRecyclerListViewItem> GetAllTemplatesOfType(object data)
-        {
-            var templateType = GetTemplateType(data.GetType());
-            return AllChildren.Where(x => x.GetType() == templateType).Cast<GeneralRecyclerListViewItem>();
-        }
-
-        protected virtual Type GetTemplateType(Type dataType)
+        protected virtual Type GetTemplateOfType(Type dataType)
         {
             if (GetTemplateMapping == null)
-                throw new Exception("You need to add View Templates mapping for all the types you want to render to the ListView");
+                throw new Exception("You need to add View Templates mapping for all the types you want to render to the ListView.");
 
             return GetTemplateMapping.Invoke(dataType);
         }
 
-        public override GeneralRecyclerListViewItem[] ItemViews => this.AllChildren<GeneralRecyclerListViewItem>().Except(v => v.Ignored).ToArray();
+        protected virtual IEnumerable<GeneralRecyclerListViewItem> GetAllTemplatesOfType(object data)
+        {
+            var templateType = GetTemplateOfType(data.GetType());
+            return AllChildren.Where(x => x.GetType() == templateType).Cast<GeneralRecyclerListViewItem>();
+        }
 
         protected override float CalculateContentAutoHeight()
         {
@@ -120,6 +134,7 @@ namespace Zebble
 
         async Task OnUserScrolledVertically()
         {
+            var start = DateTime.Now;
             if (IsProcessingLazyLoading) return;
             IsProcessingLazyLoading = true;
 
@@ -132,14 +147,16 @@ namespace Zebble
         }
 
         float LowestItemBottom => ItemViews.MaxOrDefault(c => c.ActualBottom);
-
-        float HighestItemTop => ItemViews.MinOrDefault(c => c.ActualY - c.ActualHeight);
+        float ToppestItemTop => ItemViews.MinOrDefault(c => c.ActualY - c.ActualHeight);
 
         object LowestShownItem => ItemViews.None() ? default(object) : ItemViews.WithMax(c => c.ActualY).Item.Value;
+        object TopestShownItem => ItemViews.None() ? default(object) : ItemViews.WithMin(c => c.ActualY).Item.Value;
 
         async Task<bool> LazyLoadMore()
         {
-            var next = GetNextItemToLoad();
+            var next = GetNextVisibleItemToLoad();
+
+            Log.Warning("======== Next: " + next);
 
             if (next == null)
             {
@@ -151,9 +168,9 @@ namespace Zebble
             return true;
         }
 
-        bool ShouldLoadMore() => Scroller.ScrollY + Scroller.ActualHeight >= ItemViews.Except(SeparatedItemViews).MaxOrDefault(c => c.ActualBottom) + ActualY;
+        bool ShouldLoadMore() => ScrollerPosition + Scroller.ActualHeight >= ItemViews.Except(SeparatedItemViews).MaxOrDefault(c => c.ActualBottom) + ActualY;
 
-        bool ShouldRecycleUp() => Scroller.ScrollY < ItemViews.Except(SeparatedItemViews).MinOrDefault(c => c.ActualY) + ActualY;
+        bool ShouldRecycleUp() => ScrollerPosition < ItemViews.Except(SeparatedItemViews).MinOrDefault(c => c.ActualY) + ActualY;
 
         bool RecycleUp()
         {
@@ -164,13 +181,10 @@ namespace Zebble
                 WasScrollingDown = false;
             }
 
-            var topItem = ItemViews.WithMin(v => v.ActualY);
+            var item = GetPreviousVisibleItemToLoad();
 
-            object item;
+            Log.Error("---------- Prev: " + item);
 
-            lock (DataSourceSyncLock)
-                if (topItem == null) item = DataSource.FirstOrDefault();
-                else item = DataSource.ElementAtOrDefault(DataSource.IndexOf(topItem.Item.Value) - 1);
 
             if (item == null) return false;
 
@@ -178,19 +192,21 @@ namespace Zebble
 
             if (recycle != ItemViews.WithMax(x => x.ActualY))
             {
-                ItemViews.Where(x => x.ActualY > recycle.ActualY).Except(x => SeparatedItemViews.Contains(x)).Do(x => SeparatedItemViews.Add(x));
+                ItemViews.Where(x => x.ActualY > recycle.ActualY).Except(SeparatedItemViews).Do(x => SeparatedItemViews.Add(x));
             }
 
+            //if(GetOffset(item) + recycle.ActualHeight < ItemViews.Except(SeparatedItemViews).Min(x=> x.ActualY - x.ActualHeight))
+            //{
+            //    ItemViews.Except(recycle).Except(SeparatedItemViews).Do(x => SeparatedItemViews.Add(x));
+            //}
 
-            recycle.Y(topItem.ActualY - recycle.ActualHeight);
+            recycle.Y(GetOffset(item));
             recycle.Item.Set(item);
 
             SeparatedItemViews.Remove(recycle);
 
             // In case the height is changed
-            Thread.UI.Post(() => recycle.Y(topItem.ActualY - recycle.ActualHeight));
-
-
+            Thread.UI.Post(() => recycle.Y(GetOffset(item)));
 
             return true;
         }
@@ -199,7 +215,7 @@ namespace Zebble
         {
             if (!WasScrollingDown)
             {
-                SeparatedItemViews.Do(x => x.Y(HighestItemTop - x.ActualHeight));
+                SeparatedItemViews.Do(x => x.Y(ToppestItemTop - x.ActualHeight));
                 SeparatedItemViews.Clear();
                 WasScrollingDown = true;
             }
@@ -213,10 +229,10 @@ namespace Zebble
                 ItemViews.Where(x => x.ActualY < firstChild.ActualY).Except(x => SeparatedItemViews.Contains(x)).Do(x => SeparatedItemViews.Add(x));
             }
 
-            if (firstChild != null && firstChild.ActualBottom + ActualY < Scroller.ScrollY)
+            if (firstChild != null && firstChild.ActualBottom < ScrollerPosition)
             {
                 recycled = firstChild;
-                recycled.Y(LowestItemBottom).Item.Set(item);
+                recycled.Y(GetOffset(item)).Item.Set(item);
 
                 SeparatedItemViews.Remove(recycled);
 
@@ -243,15 +259,14 @@ namespace Zebble
             var row = child as GeneralRecyclerListViewItem;
             if (row == null) return await base.Add(child, awaitNative);
 
-            var position = LowestItemBottom;
             await base.Add(child, awaitNative);
-            child.Y(position);
+            child.Y(GetOffset(row.Item));
 
             // Hardcode on the same value to get rid of the dependencies.
             foreach (var item in ItemViews)
             {
                 item.Y.Changed.ClearHandlers();
-                item.Y(item.ActualY);
+                item.Y(GetOffset((item as GeneralRecyclerListViewItem).Item.Value));
                 item.IgnoredChanged.ClearHandlers();
             }
 
@@ -269,25 +284,32 @@ namespace Zebble
             var result = GetAllTemplatesOfType(data).FirstOrDefault(v => v.Ignored);
             if (result == null) return null;
 
-            result.Y(LowestItemBottom).Ignored(false);
+            result.Y(GetOffset(data)).Ignored(false);
             result.Item.Set(data);
             return result;
         }
 
-        public async Task<bool> ScrollToItem(object data, bool animate = true)
+        public async Task<bool> ScrollToItem(object data, bool animate = false)
         {
-            var item = DataSource.FirstOrDefault(x => x.Equals(data));
-            if (item == null) return false;
+            var newPosition = GetOffset(data) + ActualY;
+            await Scroller.ScrollTo(newPosition > ScrollerPosition ? newPosition - 1 : newPosition + 1, 0, animate);
+            return true;
+        }
 
-            float height = 0;
+        float GetOffset(object data)
+        {
+            float offset;
+            var item = DataSource.FirstOrDefault(x => x.Equals(data));
+            if (item == null) return 0;
+
+            offset = 0;
             foreach (var type in DataSource.GetElementsBefore(item).Select(x => x.GetType()).Distinct())
             {
                 var lastItem = ItemViews.LastOrDefault(x => x.Item.Value.GetType() == type);
-                height += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * lastItem.CalculateTotalHeight();
+                offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * lastItem.CalculateTotalHeight();
             }
 
-            await Scroller.ScrollTo(height,0, animate);
-            return true;
+            return offset;
         }
     }
 }
