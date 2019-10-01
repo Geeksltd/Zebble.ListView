@@ -305,7 +305,7 @@ namespace Zebble
             offset = 0;
             foreach (var type in DataSource.GetElementsBefore(item).Select(x => x.GetType()).Distinct())
             {
-                var lastItem = ItemViews.LastOrDefault(x => x.Item.Value.GetType() == type);
+                var lastItem = ItemViews.LastOrDefault(x => x.Item.Value.GetType() == type) ?? (GeneralRecyclerListViewItem)Activator.CreateInstance(GetTemplateMapping(type));
                 offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * lastItem.CalculateTotalHeight();
             }
 
