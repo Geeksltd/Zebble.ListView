@@ -10,30 +10,30 @@ namespace Zebble
     public class GeneralRecyclerListView : ListView<object, GeneralRecyclerListViewItem>
     {
         bool IsProcessingLazyLoading;
-        bool WasScrollingDown = true;
-        object CurrentItem;
-        List<GeneralRecyclerListViewItem> SeparatedItemViews = new List<GeneralRecyclerListViewItem>();
+        float TopOfScreen => Scroller.ScrollY - ActualY;
+        float BottomOfScreen => TopOfScreen + Scroller.ActualHeight;
+        Dictionary<int, float> Offsets = new Dictionary<int, float>();
 
         /// <summary>
         /// This event will be fired when all datasource items are rendered and added to the list. 
         /// </summary>
         public readonly AsyncEvent LazyLoadEnded = new AsyncEvent();
-
+        public float Offset { get; set; } = 300;
         public GeneralRecyclerListView() => PseudoCssState = "lazy-loaded";
-
         public Func<Type, Type> GetTemplateMapping;
+        public Func<Type, float> GetTemplateHeight;
 
         ScrollView scroller;
         ScrollView Scroller => scroller ?? (scroller = FindParent<ScrollView>())
            ?? throw new Exception("Lazy loaded list view must be inside a scroll view");
-
-        float ScrollerPosition => Scroller.ScrollY - ActualY;
 
         public override GeneralRecyclerListViewItem[] ItemViews => this.AllChildren<GeneralRecyclerListViewItem>().Except(v => v.Ignored).ToArray();
 
         public override async Task OnInitializing()
         {
             await base.OnInitializing();
+
+            Thread.Pool.Run(CalculateOffsets).RunInParallel();
 
             await WhenShown(async () =>
             {
@@ -43,54 +43,18 @@ namespace Zebble
             });
         }
 
-        protected override async Task CreateInitialItems()
+        protected override Task CreateInitialItems()
         {
-            if (IsProcessingLazyLoading) return;
-            IsProcessingLazyLoading = true;
-
-            try
-            {
-                var visibleHeight = Scroller?.ActualHeight ?? Page?.ActualHeight ?? Device.Screen.Height;
-
-                while (LowestItemBottom < visibleHeight)
-                {
-                    var dataItem = GetNextVisibleItemToLoad();
-                    if (dataItem == null) break;
-
-                    var recycled = Recycle(dataItem);
-                    if (recycled == null)
-                        await UIWorkBatch.Run(() => Add(CreateItem(dataItem), false));
-                }
-            }
-            finally
-            {
-                IsProcessingLazyLoading = false;
-            }
-        }
-
-        object GetNextVisibleItemToLoad()
-        {
-            lock (DataSourceSyncLock)
-            {
-                if (ItemViews.None()) return DataSource.FirstOrDefault();
-                return DataSource.FirstOrDefault(x => GetOffset(x) > Math.Max(ScrollerPosition, GetOffset(LowestShownItem)));
-            }
-        }
-
-        object GetPreviousVisibleItemToLoad()
-        {
-            lock (DataSourceSyncLock)
-            {
-                if (ItemViews.None() || (ScrollerPosition == 0 && TopestShownItem != DataSource.FirstOrDefault())) return DataSource.FirstOrDefault();
-                return DataSource.LastOrDefault(x => GetOffset(x) < Math.Min(ScrollerPosition, GetOffset(TopestShownItem)));
-            }
+            Offsets.Clear();
+            return RenderItems();
         }
 
         protected override GeneralRecyclerListViewItem CreateItem(object data)
         {
             var templateType = GetTemplateOfType(data.GetType());
             var template = (GeneralRecyclerListViewItem)Activator.CreateInstance(templateType);
-            template.Item.Value = data;
+            template.Item.Set(data);
+            template.Y(GetOffset(data));
 
             return template;
         }
@@ -101,6 +65,14 @@ namespace Zebble
                 throw new Exception("You need to add View Templates mapping for all the types you want to render to the ListView.");
 
             return GetTemplateMapping.Invoke(dataType);
+        }
+
+        protected virtual float GetTemplateHeightOfType(Type dataType)
+        {
+            if (GetTemplateHeight == null)
+                throw new Exception("You need to add View Templates height mapping for all the types you want to render to the ListView.");
+
+            return GetTemplateHeight.Invoke(dataType);
         }
 
         protected virtual IEnumerable<GeneralRecyclerListViewItem> GetAllTemplatesOfType(object data)
@@ -117,135 +89,59 @@ namespace Zebble
                 return emptyTemplate?.ActualHeight ?? 0;
 
             foreach (var type in DataSource.Select(x => x.GetType()).Distinct())
-            {
-                var lastItem = ItemViews.LastOrDefault(x => x.Item.Value.GetType() == type);
+                height += DataSource.Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
 
-                if (lastItem == null) return emptyTemplate?.ActualHeight ?? 0;
-
-                if (lastItem.Native == null) lastItem.ApplyCssToBranch().Wait();
-                if (lastItem.Height.AutoOption.HasValue || lastItem.Height.PercentageValue.HasValue)
-                    Log.Error("Items in a lazy loaded list view must have an explicit height value.");
-
-                height += DataSource.Count(x => x.GetType() == type) * lastItem.CalculateTotalHeight();
-            }
-
-            return Padding.Vertical() + height;
+            var totalHeight = Padding.Vertical() + height;
+            Scroller.CalculateContentSize();
+            return totalHeight;
         }
 
         async Task OnUserScrolledVertically()
         {
-            var start = DateTime.Now;
             if (IsProcessingLazyLoading) return;
             IsProcessingLazyLoading = true;
 
             try
             {
-                while (ShouldLoadMore() && await LazyLoadMore()) ;
-                while (ShouldRecycleUp() && RecycleUp()) ;
+                await RenderItems();
             }
-            finally { IsProcessingLazyLoading = false; }
+            finally
+            {
+                IsProcessingLazyLoading = false;
+            }
         }
 
-        float LowestItemBottom => ItemViews.MaxOrDefault(c => c.ActualBottom);
-        float ToppestItemTop => ItemViews.MinOrDefault(c => c.ActualY - c.ActualHeight);
-
-        object LowestShownItem => ItemViews.None() ? default(object) : ItemViews.WithMax(c => c.ActualY).Item.Value;
-        object TopestShownItem => ItemViews.None() ? default(object) : ItemViews.WithMin(c => c.ActualY).Item.Value;
-
-        async Task<bool> LazyLoadMore()
+        private async Task RenderItems()
         {
-            var next = GetNextVisibleItemToLoad();
+            CalculateOffsets();
 
-            Log.Warning("======== Next: " + next);
+            var top = TopOfScreen - Offset;
+            var bottom = BottomOfScreen + Offset;
 
-            if (next == null)
+            var itemsInScreen = Offsets.Where(x => top < x.Value && x.Value < bottom).Select(x => x.Key).ToList();
+            foreach (var index in itemsInScreen)
             {
-                await LazyLoadEnded.Raise();
-                return false;
-            }
+                var item = DataSource.ElementAt(index);
+                var position = GetOffset(item);
+                if (position > bottom)
+                    break;
 
-            if (!RecycleDown(next)) await Add(CreateItem(next), false);
-            return true;
+                if (ItemViews.None(x => x.ActualY == position))
+                {
+                    var recycle = GetAllTemplatesOfType(item).Where(x => top > x.ActualY || x.ActualY > bottom).WithMin(x => x.ActualY);
+
+                    if (recycle != null)
+                        recycle.Y(position).Item.Set(item);
+                    else
+                        await Add(CreateItem(item), false);
+                }
+            }
         }
 
-        bool ShouldLoadMore() => ScrollerPosition + Scroller.ActualHeight >= ItemViews.Except(SeparatedItemViews).MaxOrDefault(c => c.ActualBottom) + ActualY;
-
-        bool ShouldRecycleUp() => ScrollerPosition < ItemViews.Except(SeparatedItemViews).MinOrDefault(c => c.ActualY) + ActualY;
-
-        bool RecycleUp()
+        private void CalculateOffsets()
         {
-            if (WasScrollingDown)
-            {
-                SeparatedItemViews.Do(x => x.Y(LowestItemBottom));
-                SeparatedItemViews.Clear();
-                WasScrollingDown = false;
-            }
-
-            var item = GetPreviousVisibleItemToLoad();
-
-            Log.Error("---------- Prev: " + item);
-
-
-            if (item == null) return false;
-
-            var recycle = GetAllTemplatesOfType(item).WithMax(x => x.ActualY);
-
-            if (recycle != ItemViews.WithMax(x => x.ActualY))
-            {
-                ItemViews.Where(x => x.ActualY > recycle.ActualY).Except(SeparatedItemViews).Do(x => SeparatedItemViews.Add(x));
-            }
-
-            //if(GetOffset(item) + recycle.ActualHeight < ItemViews.Except(SeparatedItemViews).Min(x=> x.ActualY - x.ActualHeight))
-            //{
-            //    ItemViews.Except(recycle).Except(SeparatedItemViews).Do(x => SeparatedItemViews.Add(x));
-            //}
-
-            recycle.Y(GetOffset(item));
-            recycle.Item.Set(item);
-
-            SeparatedItemViews.Remove(recycle);
-
-            // In case the height is changed
-            Thread.UI.Post(() => recycle.Y(GetOffset(item)));
-
-            return true;
-        }
-
-        bool RecycleDown(object item)
-        {
-            if (!WasScrollingDown)
-            {
-                SeparatedItemViews.Do(x => x.Y(ToppestItemTop - x.ActualHeight));
-                SeparatedItemViews.Clear();
-                WasScrollingDown = true;
-            }
-
-            GeneralRecyclerListViewItem recycled;
-
-            var firstChild = GetAllTemplatesOfType(item).WithMin(x => x.ActualY);
-
-            if (firstChild != ItemViews.WithMin(x => x.ActualY))
-            {
-                ItemViews.Where(x => x.ActualY < firstChild.ActualY).Except(x => SeparatedItemViews.Contains(x)).Do(x => SeparatedItemViews.Add(x));
-            }
-
-            if (firstChild != null && firstChild.ActualBottom < ScrollerPosition)
-            {
-                recycled = firstChild;
-                recycled.Y(GetOffset(item)).Item.Set(item);
-
-                SeparatedItemViews.Remove(recycled);
-
-                return true;
-            }
-            else
-            {
-                recycled = Recycle(item);
-
-                SeparatedItemViews.Remove(recycled);
-
-                return recycled != null;
-            }
+            if (Offsets.Count != DataSource.Count())
+                DataSource.Do(x => GetOffset(x));
         }
 
         protected override async Task OnEmptyTemplateChanged(EmptyTemplateChangedArg args)
@@ -260,7 +156,6 @@ namespace Zebble
             if (row == null) return await base.Add(child, awaitNative);
 
             await base.Add(child, awaitNative);
-            child.Y(GetOffset(row.Item));
 
             // Hardcode on the same value to get rid of the dependencies.
             foreach (var item in ItemViews)
@@ -279,35 +174,27 @@ namespace Zebble
             else await base.Remove(child, awaitNative);
         }
 
-        GeneralRecyclerListViewItem Recycle(object data)
-        {
-            var result = GetAllTemplatesOfType(data).FirstOrDefault(v => v.Ignored);
-            if (result == null) return null;
-
-            result.Y(GetOffset(data)).Ignored(false);
-            result.Item.Set(data);
-            return result;
-        }
-
         public async Task<bool> ScrollToItem(object data, bool animate = false)
         {
             var newPosition = GetOffset(data) + ActualY;
-            await Scroller.ScrollTo(newPosition > ScrollerPosition ? newPosition - 1 : newPosition + 1, 0, animate);
+            await Scroller.ScrollTo(newPosition, 0, animate);
+            await RenderItems();
             return true;
         }
 
         float GetOffset(object data)
         {
-            float offset;
-            var item = DataSource.FirstOrDefault(x => x.Equals(data));
-            if (item == null) return 0;
+            var index = DataSource.IndexOf(data);
+            if (Offsets.ContainsKey(index)) return Offsets[index];
 
-            offset = 0;
+            float offset = 0;
+            var item = DataSource.FirstOrDefault(x => x.Equals(data));
+            if (item == null) throw new Exception("Item is not in Datasource.");
+
             foreach (var type in DataSource.GetElementsBefore(item).Select(x => x.GetType()).Distinct())
-            {
-                var lastItem = ItemViews.LastOrDefault(x => x.Item.Value.GetType() == type) ?? (GeneralRecyclerListViewItem)Activator.CreateInstance(GetTemplateMapping(type));
-                offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * lastItem.CalculateTotalHeight();
-            }
+                offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
+
+            Offsets.Add(index, offset);
 
             return offset;
         }
