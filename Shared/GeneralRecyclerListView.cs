@@ -33,7 +33,7 @@ namespace Zebble
         {
             await base.OnInitializing();
 
-            Thread.Pool.Run(CalculateOffsets).RunInParallel();
+            Thread.Pool.RunAction(CalculateOffsets);
 
             await WhenShown(async () =>
             {
