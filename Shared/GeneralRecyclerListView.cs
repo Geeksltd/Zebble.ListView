@@ -9,6 +9,7 @@ namespace Zebble
 {
     public class GeneralRecyclerListView : ListView<object, GeneralRecyclerListViewItem>
     {
+        static AsyncLock RenderLock = new AsyncLock();
         bool IsProcessingLazyLoading;
         float TopOfScreen => Scroller.ScrollY - ActualY;
         float BottomOfScreen => TopOfScreen + Scroller.ActualHeight;
@@ -18,7 +19,7 @@ namespace Zebble
         /// This event will be fired when all datasource items are rendered and added to the list. 
         /// </summary>
         public readonly AsyncEvent LazyLoadEnded = new AsyncEvent();
-        public float Offset { get; set; } = 300;
+        public float Offset { get; set; } = 0;
         public GeneralRecyclerListView() => PseudoCssState = "lazy-loaded";
         public Func<Type, Type> GetTemplateMapping;
         public Func<Type, float> GetTemplateHeight;
@@ -111,34 +112,45 @@ namespace Zebble
             }
         }
 
-        private async Task RenderItems()
+        async Task RenderItems()
         {
-            CalculateOffsets();
-
-            var top = TopOfScreen - Offset;
-            var bottom = BottomOfScreen + Offset;
-
-            var itemsInScreen = Offsets.Where(x => top < x.Value && x.Value < bottom).Select(x => x.Key).ToList();
-            foreach (var index in itemsInScreen)
+            using (await RenderLock.LockAsync())
             {
-                var item = DataSource.ElementAt(index);
-                var position = GetOffset(item);
-                if (position > bottom)
-                    break;
+                CalculateOffsets();
 
-                if (ItemViews.None(x => x.ActualY == position))
+                var top = TopOfScreen - Offset;
+                var bottom = BottomOfScreen + Offset;
+
+                var itemsInScreen = Offsets.
+                    Where(x => top <= x.Value + GetTemplateHeight(DataSource.ElementAt(x.Key).GetType()) && x.Value <= bottom).
+                    Select(x => x.Key).ToList();
+
+                foreach (var index in itemsInScreen)
                 {
-                    var recycle = GetAllTemplatesOfType(item).Where(x => top > x.ActualY || x.ActualY > bottom).WithMin(x => x.ActualY);
+                    var item = DataSource.ElementAt(index);
+                    var position = GetOffset(item);
+                    if (position > bottom)
+                        return;
 
-                    if (recycle != null)
-                        recycle.Y(position).Item.Set(item);
-                    else
-                        await Add(CreateItem(item), false);
+                    if (ItemViews.None(x => x.ActualY == position))
+                    {
+                        var recycle = GetAllTemplatesOfType(item).
+                            Where(x => top > x.ActualY + GetTemplateHeight(x.Item.Value.GetType()) || x.ActualY > bottom).
+                            WithMin(x => x.ActualY);
+
+                        Device.Log.Error("XXXXX " + item);
+                        Device.Log.Warning("===== " + position);
+
+                        if (recycle != null)
+                            recycle.Y(position).Item.Set(item);
+                        else
+                            await Add(CreateItem(item), false);
+                    }
                 }
             }
         }
 
-        private void CalculateOffsets()
+        void CalculateOffsets()
         {
             if (Offsets.Count != DataSource.Count())
                 DataSource.Do(x => GetOffset(x));
