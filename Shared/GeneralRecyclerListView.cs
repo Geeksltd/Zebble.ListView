@@ -138,9 +138,6 @@ namespace Zebble
                             Where(x => top > x.ActualY + GetTemplateHeight(x.Item.Value.GetType()) || x.ActualY > bottom).
                             WithMin(x => x.ActualY);
 
-                        Device.Log.Error("XXXXX " + item);
-                        Device.Log.Warning("===== " + position);
-
                         if (recycle != null)
                             recycle.Y(position).Item.Set(item);
                         else
@@ -206,7 +203,7 @@ namespace Zebble
             foreach (var type in DataSource.GetElementsBefore(item).Select(x => x.GetType()).Distinct())
                 offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
 
-            Offsets.Add(index, offset);
+            Offsets.TryAdd(index, offset);
 
             return offset;
         }
