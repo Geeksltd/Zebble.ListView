@@ -169,6 +169,7 @@ namespace Zebble
             // Hardcode on the same value to get rid of the dependencies.
             foreach (var item in ItemViews)
             {
+                item.Y.Clear();
                 item.Y.Changed.ClearHandlers();
                 item.Y(GetOffset((item as GeneralRecyclerListViewItem).Item.Value));
                 item.IgnoredChanged.ClearHandlers();
