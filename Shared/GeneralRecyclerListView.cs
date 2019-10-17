@@ -55,7 +55,7 @@ namespace Zebble
             var templateType = GetTemplateOfType(data.GetType());
             var template = (GeneralRecyclerListViewItem)Activator.CreateInstance(templateType);
             template.Item.Set(data);
-            template.Y(GetOffset(data));
+            template.Y.Set(GetOffset(data));
 
             return template;
         }
@@ -121,11 +121,11 @@ namespace Zebble
                 var top = TopOfScreen - Offset;
                 var bottom = BottomOfScreen + Offset;
 
-                var itemsInScreen = Offsets.
+                var itemsInScreenIndexes = Offsets.
                     Where(x => top <= x.Value + GetTemplateHeight(DataSource.ElementAt(x.Key).GetType()) && x.Value <= bottom).
                     Select(x => x.Key).ToList();
 
-                foreach (var index in itemsInScreen)
+                foreach (var index in itemsInScreenIndexes)
                 {
                     var item = DataSource.ElementAt(index);
                     var position = GetOffset(item);
@@ -161,12 +161,10 @@ namespace Zebble
 
         public override async Task<TView> Add<TView>(TView child, bool awaitNative = false)
         {
-            var row = child as GeneralRecyclerListViewItem;
-            if (row == null) return await base.Add(child, awaitNative);
+            if (!(child is GeneralRecyclerListViewItem)) return await base.Add(child, awaitNative);
 
             await base.Add(child, awaitNative);
 
-            // Hardcode on the same value to get rid of the dependencies.
             foreach (var item in ItemViews)
             {
                 item.Y.Clear();
@@ -204,9 +202,7 @@ namespace Zebble
             foreach (var type in DataSource.GetElementsBefore(item).Select(x => x.GetType()).Distinct())
                 offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
 
-            Offsets.TryAdd(index, offset);
-
-            return offset;
+            return Offsets.GetOrAdd(index, () => offset);
         }
     }
 }
