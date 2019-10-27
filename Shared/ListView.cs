@@ -101,7 +101,7 @@ namespace Zebble
             }
         }
 
-        public async Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true)
+        public virtual async Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true)
         {
             lock (DataSourceSyncLock)
                 dataSource = new ConcurrentList<TSource>(source ?? Enumerable.Empty<TSource>());

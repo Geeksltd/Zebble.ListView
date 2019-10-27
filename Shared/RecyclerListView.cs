@@ -202,5 +202,8 @@ namespace Zebble
             result.Item.Set(data);
             return result;
         }
+
+        public override Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true) =>
+            UIWorkBatch.Run(() => base.UpdateSource(source, reRenderItems));
     }
 }
