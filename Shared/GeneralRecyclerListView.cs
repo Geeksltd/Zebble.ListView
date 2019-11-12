@@ -141,7 +141,7 @@ namespace Zebble
                         if (recycle != null)
                             recycle.Y(position).Item.Set(item);
                         else
-                            await Add(CreateItem(item), false);
+                            await UIWorkBatch.Run(()=> Add(CreateItem(item), false));
                     }
                 }
             }
@@ -204,5 +204,9 @@ namespace Zebble
 
             return Offsets.GetOrAdd(index, () => offset);
         }
+
+
+        public override Task UpdateSource(IEnumerable<object> source, bool reRenderItems = true) => 
+            UIWorkBatch.Run(() => base.UpdateSource(source, reRenderItems));
     }
 }
