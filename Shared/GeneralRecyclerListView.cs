@@ -79,7 +79,7 @@ namespace Zebble
         protected virtual IEnumerable<GeneralRecyclerListViewItem> GetAllTemplatesOfType(object data)
         {
             var templateType = GetTemplateOfType(data.GetType());
-            return AllChildren.Where(x => x.GetType() == templateType).Cast<GeneralRecyclerListViewItem>();
+            return ItemViews.Where(x => x.GetType() == templateType);
         }
 
         protected override float CalculateContentAutoHeight()
