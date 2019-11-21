@@ -17,6 +17,7 @@
     <None Include="$(MSBuildThisFileDirectory)NuGet\Icon.png" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)GeneralListView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ListView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ListViewItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GeneralRecyclerListView.cs" />
