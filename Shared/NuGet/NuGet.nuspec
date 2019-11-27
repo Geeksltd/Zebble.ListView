@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>Zebble.ListView</id>
-    <version>4.10.164</version>
+    <version>4.10.165</version>
     <title>List View for Zebble (Xamarin)</title>
     <projectUrl>https://github.com/Geeksltd/Zebble.ListView</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/Geeksltd/Zebble.ListView/master/Shared/NuGet/Icon.png</iconUrl>
