@@ -199,19 +199,7 @@ namespace Zebble
             return Offsets.GetOrAdd(index, () => offset);
         }
 
-        public override Task UpdateSource(IEnumerable<object> source, bool reRenderItems = true)
-        {
-            return UIWorkBatch.Run(async () =>
-            {
-                lock (DataSourceSyncLock)
-                    dataSource = new List<object>(source ?? Enumerable.Empty<object>());
-
-                if (!reRenderItems) return;
-
-                emptyTemplate?.Ignored(dataSource.Any());
-
-                await CreateInitialItems();
-            });
-        }
+        public override Task UpdateSource(IEnumerable<object> source, bool reRenderItems = true) =>
+           UIWorkBatch.Run(() => base.UpdateSource(source, reRenderItems));
     }
 }
