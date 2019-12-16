@@ -168,13 +168,16 @@ namespace Zebble
 
         public override async Task<TView> Add<TView>(TView child, bool awaitNative = false)
         {
-            var row = child as TRowTemplate;
-            if (row == null) return await base.Add(child, awaitNative);
+            if (child is TRowTemplate row) await AddRow(row, awaitNative);
+            else await base.Add(child, awaitNative);
+            return child;
+        }
 
+        protected virtual async Task AddRow(TRowTemplate row, bool awaitNative)
+        {
             var position = LowestItemBottom;
-            Log.Message("Adding to " + LowestItemBottom + " -> " + row.Item.Value);
-            await base.Add(child, awaitNative);
-            child.Y(position);
+            await base.Add(row, awaitNative);
+            row.Y(position);
 
             // Hardcode on the same value to get rid of the dependencies.
             foreach (var item in ItemViews)
@@ -183,8 +186,6 @@ namespace Zebble
                 item.Y(item.ActualY);
                 item.IgnoredChanged.ClearHandlers();
             }
-
-            return child;
         }
 
         public override async Task Remove(View child, bool awaitNative = false)
