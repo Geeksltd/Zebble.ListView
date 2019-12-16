@@ -4,10 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Zebble.Device;
 using System.Reflection;
+using System.Collections.Concurrent;
 
 namespace Zebble
 {
-    public class GeneralRecyclerListView : ListView<object, GeneralRecyclerListViewItem>
+    public class GeneralRecyclerListView : GeneralListView<object, GeneralRecyclerListViewItem>
     {
         static AsyncLock RenderLock = new AsyncLock();
         bool IsProcessingLazyLoading;
@@ -47,6 +48,7 @@ namespace Zebble
         protected override Task CreateInitialItems()
         {
             Offsets.Clear();
+            this.Height(CalculateHeight());
             return RenderItems();
         }
 
@@ -79,10 +81,10 @@ namespace Zebble
         protected virtual IEnumerable<GeneralRecyclerListViewItem> GetAllTemplatesOfType(object data)
         {
             var templateType = GetTemplateOfType(data.GetType());
-            return AllChildren.Where(x => x.GetType() == templateType).Cast<GeneralRecyclerListViewItem>();
+            return ItemViews.Where(x => x.GetType() == templateType);
         }
 
-        protected override float CalculateContentAutoHeight()
+        protected float CalculateHeight()
         {
             float height = 0;
 
@@ -141,7 +143,7 @@ namespace Zebble
                         if (recycle != null)
                             recycle.Y(position).Item.Set(item);
                         else
-                            await Add(CreateItem(item), false);
+                            await UIWorkBatch.Run(() => Add(CreateItem(item), false));
                     }
                 }
             }
@@ -164,14 +166,6 @@ namespace Zebble
             if (!(child is GeneralRecyclerListViewItem)) return await base.Add(child, awaitNative);
 
             await base.Add(child, awaitNative);
-
-            foreach (var item in ItemViews)
-            {
-                item.Y.Clear();
-                item.Y.Changed.ClearHandlers();
-                item.Y(GetOffset((item as GeneralRecyclerListViewItem).Item.Value));
-                item.IgnoredChanged.ClearHandlers();
-            }
 
             return child;
         }
@@ -204,5 +198,8 @@ namespace Zebble
 
             return Offsets.GetOrAdd(index, () => offset);
         }
+
+        public override Task UpdateSource(IEnumerable<object> source, bool reRenderItems = true) =>
+           UIWorkBatch.Run(() => base.UpdateSource(source, reRenderItems));
     }
 }
