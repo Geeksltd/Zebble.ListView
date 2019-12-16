@@ -37,9 +37,12 @@ namespace Zebble
 
         protected override async Task ApplyDefaultFlash()
         {
+            var effectiveBackground = WithAllParents().Select(x => x.BackgroundColor).Except(x => x.IsTransparent()).FirstOrDefault();
+            if (effectiveBackground == null) return;
+
             using (Stylesheet.Preserve(this, x => x.BackgroundColor))
             {
-                this.Background(color: "#eeeeee");
+                this.Background(effectiveBackground.Darken(20));
                 await base.ApplyDefaultFlash();
             }
         }
