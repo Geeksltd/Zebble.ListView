@@ -81,7 +81,7 @@ namespace Zebble
 
             ItemHeight = lastItem.CalculateTotalHeight();
 
-            return Padding.Vertical() + (DataSource.Count() + 1) * ItemHeight;
+            return Padding.Vertical() + DataSource.Count() * ItemHeight;
         }
 
         async Task OnUserScrolledVertically()
