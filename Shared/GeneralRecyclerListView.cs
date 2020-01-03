@@ -172,7 +172,7 @@ namespace Zebble
 
         public override async Task Remove(View child, bool awaitNative = false)
         {
-            if (child is GeneralRecyclerListViewItem row) child.Ignored = true;
+            if (child is GeneralRecyclerListViewItem) await child.IgnoredAsync();
             else await base.Remove(child, awaitNative);
         }
 

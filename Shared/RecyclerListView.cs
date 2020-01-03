@@ -59,6 +59,7 @@ namespace Zebble
                     var recycled = Recycle(dataItem);
                     if (recycled == null)
                         await UIWorkBatch.Run(() => Add(CreateItem(dataItem)));
+                    else await recycled.IgnoredAsync(false);
                 }
             }
             finally
@@ -116,7 +117,7 @@ namespace Zebble
                 return false;
             }
 
-            if (!RecycleDown(next)) await Add(CreateItem(next));
+            if (!await RecycleDown(next)) await Add(CreateItem(next));
             return true;
         }
 
@@ -142,7 +143,7 @@ namespace Zebble
             return true;
         }
 
-        bool RecycleDown(TSource item)
+        async Task<bool> RecycleDown(TSource item)
         {
             TRowTemplate recycled;
 
@@ -156,7 +157,9 @@ namespace Zebble
             else
             {
                 recycled = Recycle(item);
-                return recycled != null;
+                if (recycled == null) return false;
+                await recycled.IgnoredAsync(false);
+                return true;
             }
         }
 
@@ -190,7 +193,7 @@ namespace Zebble
 
         public override async Task Remove(View child, bool awaitNative = false)
         {
-            if (child is TRowTemplate row) child.Ignored = true;
+            if (child is TRowTemplate row) await child.IgnoredAsync();
             else await base.Remove(child, awaitNative);
         }
 
@@ -199,7 +202,7 @@ namespace Zebble
             var result = AllChildren.OfType<TRowTemplate>().FirstOrDefault(v => v.Ignored);
             if (result == null) return null;
 
-            result.Y(LowestItemBottom).Ignored(false);
+            result.Y(LowestItemBottom);
             result.Item.Set(data);
             return result;
         }

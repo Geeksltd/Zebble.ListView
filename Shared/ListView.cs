@@ -70,7 +70,7 @@ namespace Zebble
         public override async Task OnInitializing()
         {
             await base.OnInitializing();
-            emptyTemplate?.Ignored(dataSource.Any());
+            await (emptyTemplate?.IgnoredAsync(dataSource.Any()) ?? Task.CompletedTask);
         }
 
         protected virtual async Task OnEmptyTemplateChanged(EmptyTemplateChangedArg args)
@@ -78,7 +78,8 @@ namespace Zebble
             if (!AllChildren.Contains(args.OldView)) return;
 
             await Remove(args.OldView);
-            await Add(args.NewView.Ignored(dataSource.Any()));
+            await args.NewView.IgnoredAsync(dataSource.Any());
+            await Add(args.NewView);
         }
 
         public virtual TRowTemplate[] ItemViews => this.AllChildren<TRowTemplate>() /* for concurrency */ .ToArray();
@@ -111,7 +112,7 @@ namespace Zebble
             foreach (var item in ItemViews.Reverse().ToArray())
                 await Remove(item);
 
-            emptyTemplate?.Ignored(dataSource.Any());
+            await (emptyTemplate?.IgnoredAsync(dataSource.Any()) ?? Task.CompletedTask);
 
             await CreateInitialItems();
         }
