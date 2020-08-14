@@ -31,7 +31,7 @@ namespace Zebble
         where TRowTemplate : View, IListViewItem<TSource>, new()
     {
         ConcurrentList<TSource> dataSource = new ConcurrentList<TSource>();
-        protected object DataSourceSyncLock = new object();
+        protected readonly object DataSourceSyncLock = new object();
 
         public ListView() : base() { EmptyTemplateChanged.Handle(OnEmptyTemplateChanged); }
 

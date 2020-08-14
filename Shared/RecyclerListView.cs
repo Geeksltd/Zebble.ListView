@@ -21,8 +21,11 @@ namespace Zebble
 
             await WhenShown(async () =>
             {
-                Scroller.UserScrolledVertically.HandleOn(Thread.UI, () => OnUserScrolledVertically());
-                Scroller.ScrollEnded.HandleOn(Thread.UI, () => OnUserScrolledVertically());
+                var scroller = FindParent<ScrollView>();
+                if (scroller == null) return; // rare threading issue.
+
+                scroller.UserScrolledVertically.HandleOn(Thread.UI, () => OnUserScrolledVertically());
+                scroller.ScrollEnded.HandleOn(Thread.UI, () => OnUserScrolledVertically());
                 await CreateInitialItems();
             });
         }
@@ -123,20 +126,22 @@ namespace Zebble
 
         bool RecycleUp()
         {
+            var recycle = ItemViews.WithMax(x => x.ActualY);
+            if (recycle == null) return false;
+
             var topItem = ItemViews.WithMin(v => v.ActualY);
+            if (topItem == null) return false; // concurrency issue. Should not happen really.
 
             TSource item;
 
             lock (DataSourceSyncLock)
-                if (topItem == null) item = DataSource.FirstOrDefault();
-                else item = DataSource.ElementAtOrDefault(DataSource.IndexOf(topItem.Item) - 1);
+                item = DataSource.ElementAtOrDefault(DataSource.IndexOf(topItem.Item) - 1);
 
-            if (item == null) return false;
-
-            var recycle = ItemViews.WithMax(x => x.ActualY);
+            if (item == null) return false; // No item before it
 
             recycle.Y(topItem.ActualY - recycle.ActualHeight);
             recycle.Item.Set(item);
+
             // In case the height is changed
             Thread.UI.Post(() => recycle.Y(topItem.ActualY - recycle.ActualHeight));
 

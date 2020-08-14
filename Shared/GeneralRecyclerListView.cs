@@ -39,8 +39,11 @@ namespace Zebble
 
             await WhenShown(async () =>
             {
-                Scroller.UserScrolledVertically.HandleOn(Thread.UI, () => OnUserScrolledVertically());
-                Scroller.ScrollEnded.HandleOn(Thread.UI, () => OnUserScrolledVertically());
+                var scroller = FindParent<ScrollView>();
+                if (scroller == null) return; // rare threading issue.
+
+                scroller.UserScrolledVertically.HandleOn(Thread.UI, () => OnUserScrolledVertically());
+                scroller.ScrollEnded.HandleOn(Thread.UI, () => OnUserScrolledVertically());
                 await CreateInitialItems();
             });
         }
