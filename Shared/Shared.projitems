@@ -17,13 +17,25 @@
     <None Include="$(MSBuildThisFileDirectory)NuGet\Icon.png" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)GeneralListView.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ListView.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)ListViewItem.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)GeneralRecyclerListView.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)GeenralRecyclerListViewItem.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)RecyclerListView.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)RecyclerListViewItem.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Rotator.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollectionView.Height.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollectionView.Items.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollectionView.Layout.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollectionView.Scroll.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollectionView.TTemplate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CollectionView.ViewItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\GeneralListView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\ListView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\ListViewItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\GeneralRecyclerListView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\GeenralRecyclerListViewItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\RecyclerListView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\RecyclerListViewItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Legacy\Rotator.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(MSBuildThisFileDirectory)Requirements.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Legacy\" />
   </ItemGroup>
 </Project>

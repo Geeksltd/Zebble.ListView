@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Zebble.Device;
-using System.Reflection;
-using System.Collections.Concurrent;
 
 namespace Zebble
 {
@@ -134,8 +131,7 @@ namespace Zebble
                 {
                     var item = DataSource.ElementAt(index);
                     var position = GetOffset(item);
-                    if (position > bottom)
-                        return;
+                    if (position > bottom) return;
 
                     if (ItemViews.None(x => x.ActualY == position))
                     {

@@ -212,7 +212,7 @@ namespace Zebble
         {
             index--; // Content
             if (RightSlideIn.parent != null || LeftSlideIn.parent != null) index--; // SlideIn
-            return await Content.AddAt(index, child, awaitNative).DropContext();
+            return await Content.AddAt(index, child, awaitNative);
         }
 
         public override bool CanCancelTouches => RightSlideVisible || LeftSlideVisible;

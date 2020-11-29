@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Zebble
+﻿namespace Zebble
 {
     public interface IGeneralRecyclerListViewItem : IListViewItem<object>
     {

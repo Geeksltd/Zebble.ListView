@@ -45,7 +45,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Zebble.iOS, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Zebble.4.4.318\lib\Xamarin.iOS10\Zebble.iOS.dll</HintPath>
+      <HintPath>..\packages\Zebble.4.5.383\lib\Xamarin.iOS10\Zebble.iOS.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
