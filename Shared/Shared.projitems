@@ -33,9 +33,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Legacy\Rotator.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="$(MSBuildThisFileDirectory)Requirements.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="$(MSBuildThisFileDirectory)Legacy\" />
   </ItemGroup>
 </Project>

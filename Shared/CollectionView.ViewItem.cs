@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace Zebble
 {
@@ -15,7 +16,7 @@ namespace Zebble
             {
                 View = view;
                 Model = FindModel();
-                Item = Model.GetValue<TSource>();
+                Item = (TSource)Model.Value;
             }
 
             IBindable FindModel()
@@ -33,7 +34,9 @@ namespace Zebble
             internal void Load(TSource vm)
             {
                 Item = vm;
-                Model.SetValue(vm);
+                Model.Value = vm;
+
+                View.RefreshBindings();
             }
         }
     }

@@ -5,14 +5,6 @@ using System.Threading.Tasks;
 
 namespace Zebble
 {
-    public static class TempExtensions
-    {
-        public static T GetValue<T>(this IBindable @this)
-        {
-            return (T)@this.GetType().GetProperty("Value").GetValue(@this);
-        }
-    }
-
     partial class CollectionView<TSource>
     {
         public class EmptyTemplate : Canvas { }
@@ -25,7 +17,7 @@ namespace Zebble
 
             var result = type.CreateInstance<View>();
 
-            GetModel(result).SetValue(viewModel);
+            GetModel(result).Value = viewModel;
 
             result.Ignored = true;
 
