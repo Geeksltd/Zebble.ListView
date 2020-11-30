@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Zebble
@@ -17,24 +16,12 @@ namespace Zebble
 
             var result = type.CreateInstance<View>();
 
-            GetModel(result).Value = viewModel;
+            result.SetViewModelValue(viewModel);
 
             result.Ignored = true;
 
             return result;
             // .CssClass("list-item");
-        }
-
-        IBindable GetModel(View view)
-        {
-            var type = view.GetType();
-            var modelProperty = type.GetPropertyOrField("Model")
-              ?? throw new Exception(type.GetProgrammingName() + " does not have a field or property named Model");
-
-            if (!modelProperty.GetPropertyOrFieldType().IsA<IBindable>())
-                throw new Exception(type.GetProgrammingName() + ".Model is not IBindable.");
-
-            return (IBindable)modelProperty.GetValue(view);
         }
 
         protected virtual View[] ViewItems() => AllChildren.Except(FindEmptyTemplate()).ToArray();
@@ -46,6 +33,7 @@ namespace Zebble
 
             await WhenShown(async () =>
             {
+                HandleScrolling();
                 await MeasureItems();
                 await UIWorkBatch.Run(Arrange);
             });

@@ -18,7 +18,8 @@ namespace Zebble
                 if (source == value) return;
                 value = value ?? new TSource[0];
 
-                (source as CollectionViewModel).Changed -= OnSourceChanged;
+                if (source is CollectionViewModel oldVm)
+                    oldVm.Changed -= OnSourceChanged;
 
                 if (source != null)
                 {
@@ -28,7 +29,8 @@ namespace Zebble
                 else
                 {
                     source = value;
-                    if (source is CollectionViewModel cl) cl.Changed += OnSourceChanged;
+                    if (value is CollectionViewModel newVm)
+                        newVm.Changed += OnSourceChanged;
                 }
             }
         }

@@ -113,7 +113,7 @@
       <Version>0.4.11</Version>
     </PackageReference>
     <PackageReference Include="Zebble">
-      <Version>4.5.386</Version>
+      <Version>4.5.387</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="..\Shared\Shared.projitems" Label="Shared" Condition="Exists('..\Shared\Shared.projitems')" />
@@ -135,7 +135,6 @@
     <Error Condition="!Exists('..\Shared\Shared.projitems')" Text="This project references Shared that are missing on this computer." />
   </Target>
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>copy /y $(TargetPath) E:\Nuget\packages\zebble.listview\4.10.171\lib\UAP10</PostBuildEvent>
   </PropertyGroup>
 </Project>

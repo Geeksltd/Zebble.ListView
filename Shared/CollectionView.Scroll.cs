@@ -24,9 +24,9 @@ namespace Zebble
         {
             if (Scroller == null) return;
 
-            //Scroller.UserScrolledVertically.HandleOn(Thread.UI, () => OnUserScrolledVertically());
-            Scroller.UserScrolledHorizontally.Handle(() => OnUserScrolledVertically());
-            Scroller.ScrollEnded.HandleOn(Thread.UI, () => OnUserScrolledVertically(mandatory: true));
+            Scroller.UserScrolledVertically.Event += () => OnUserScrolledVertically();
+            Scroller.UserScrolledHorizontally.Event += () => OnUserScrolledVertically();
+            Scroller.ScrollEnded.Event += () => OnUserScrolledVertically(mandatory: true);
         }
 
         async Task OnUserScrolledVertically(bool mandatory = false)
