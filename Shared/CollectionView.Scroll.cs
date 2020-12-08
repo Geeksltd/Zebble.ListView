@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Zebble
 {
-    partial class CollectionView<TSource>
+    internal interface ICollectionView { }
+
+    partial class CollectionView<TSource> : ICollectionView
     {
         bool IsProcessingLazyLoading;
         ScrollView scroller;
@@ -19,6 +22,8 @@ namespace Zebble
                 throw new Exception("Lazy loaded list view must be inside a scroll view");
             }
         }
+
+        bool IsNested() => GetAllParents().OfType<ICollectionView>().Any();
 
         protected virtual void HandleScrolling()
         {

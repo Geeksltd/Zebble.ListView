@@ -56,8 +56,14 @@ namespace Zebble
 
             var mapping = ViewItems().Select(v => new ViewItem(v)).ToArray();
 
-            var visibleFrom = (Scroller.ScrollY - OverRenderBuffer()).LimitMin(0);
-            var visibleTo = Scroller.ScrollY + Scroller.ActualHeight + OverRenderBuffer();
+            var visibleFrom = 0f;
+            var visibleTo = float.MaxValue;
+
+            if (!IsNested() && Scroller != null)
+            {
+                visibleFrom = (Scroller.ScrollY - OverRenderBuffer()).LimitMin(0);
+                visibleTo = Scroller.ScrollY + Scroller.ActualHeight + OverRenderBuffer();
+            }
 
             var counter = -1;
             foreach (var vm in source)
