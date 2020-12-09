@@ -1,5 +1,4 @@
 ﻿using System;
-using Zebble.Mvvm;
 
 namespace Zebble
 {

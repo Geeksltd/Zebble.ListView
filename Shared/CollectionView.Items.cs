@@ -9,6 +9,24 @@ namespace Zebble
         where TSource : class
     {
         protected IEnumerable<TSource> source;
+        RepeatDirection direction = RepeatDirection.Vertical;
+
+        public CollectionView() => ClipChildren = false;
+
+        public RepeatDirection Direction
+        {
+            get => direction;
+            set
+            {
+                if (value == direction) return;
+                if (IsRendered()) throw new InvalidOperationException("Direction can only be set once and before rendering.");
+                direction = value;
+                if (Horizontal)
+                    this.Width(new Length.AutoLengthRequest(Length.AutoStrategy.Content));
+            }
+        }
+
+        bool Horizontal => direction == RepeatDirection.Horizontal;
 
         public IEnumerable<TSource> Source
         {

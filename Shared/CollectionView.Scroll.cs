@@ -29,12 +29,12 @@ namespace Zebble
         {
             if (Scroller == null) return;
 
-            Scroller.UserScrolledVertically.Event += () => OnUserScrolledVertically();
-            Scroller.UserScrolledHorizontally.Event += () => OnUserScrolledVertically();
-            Scroller.ScrollEnded.Event += () => OnUserScrolledVertically(mandatory: true);
+            Scroller.UserScrolledVertically.Event += () => OnUserScrolled().RunInParallel();
+            Scroller.UserScrolledHorizontally.Event += () => OnUserScrolled().RunInParallel();
+            Scroller.ScrollEnded.Event += () => OnUserScrolled(mandatory: true).RunInParallel();
         }
 
-        async Task OnUserScrolledVertically(bool mandatory = false)
+        async Task OnUserScrolled(bool mandatory = false)
         {
             if (IsProcessingLazyLoading)
             {
@@ -62,7 +62,13 @@ namespace Zebble
             var index = source.OrEmpty().IndexOf(viewModel);
             if (index == -1) return false;
 
-            await Scroller.ScrollTo(ItemYPositions.GetOrDefault(index), 0, animate);
+            var offset = ItemPositionOffsets.GetOrDefault(index);
+
+            if (Horizontal)
+                await Scroller.ScrollTo(0, offset, animate);
+            else
+                await Scroller.ScrollTo(offset, 0, animate);
+
             await Arrange();
             return true;
         }

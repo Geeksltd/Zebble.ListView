@@ -8,50 +8,63 @@ namespace Zebble
 {
     partial class CollectionView<TSource>
     {
-        ConcurrentDictionary<Type, float> TemplateHeightCache = new ConcurrentDictionary<Type, float>();
-        Dictionary<int, float> ItemYPositions;
+        ConcurrentDictionary<Type, float> TemplateWithOrHeightCache = new ConcurrentDictionary<Type, float>();
+        Dictionary<int, float> ItemPositionOffsets;
 
-        async Task<float> HeightOf(TSource item)
+        async Task<float> SizeOf(TSource item)
         {
             var viewType = GetViewType(item);
 
-            if (TemplateHeightCache.TryGetValue(viewType, out var result)) return result;
-            return TemplateHeightCache[viewType] = await GetHeight(item);
+            if (TemplateWithOrHeightCache.TryGetValue(viewType, out var result)) return result;
+            return TemplateWithOrHeightCache[viewType] = await GetSize(item);
         }
 
         /// <summary>
         /// This is only called once per view model type.
         /// </summary>
-        protected virtual async Task<float> GetHeight(TSource exampleModel)
+        protected virtual async Task<float> GetSize(TSource exampleModel)
         {
             // Default implementation is to render an invisible item and see what its height is going to be.
-            var temp = CreateItemView(exampleModel);
+            var temp = CreateItemView(exampleModel);            
             await Add(temp);
-            return temp.ActualHeight + temp.Margin.Top() + temp.Margin.Bottom();
+
+            if (Horizontal)
+                return temp.ActualWidth + temp.Margin.Left() + temp.Margin.Right();
+            else
+                return temp.ActualHeight + temp.Margin.Top() + temp.Margin.Bottom();
         }
 
         protected virtual async Task MeasureItems()
         {
             if (source.None())
             {
-                Height.Set(FindEmptyTemplate()?.ActualHeight ?? 0);
+                if (Horizontal) Width.Set(FindEmptyTemplate()?.ActualWidth ?? 0);
+                else Height.Set(FindEmptyTemplate()?.ActualHeight ?? 0);
                 return;
             }
 
-            var total = Padding.Top();
+            var total = Horizontal ? Padding.Left() : Padding.Top();
             var counter = 0;
-            ItemYPositions = new Dictionary<int, float>(source.Count());
+            ItemPositionOffsets = new Dictionary<int, float>(source.Count());
 
             foreach (var item in source)
             {
-                ItemYPositions[counter] = total;
+                ItemPositionOffsets[counter] = total;
 
-                total += await HeightOf(item);
+                total += await SizeOf(item);
                 counter++;
             }
 
-            total += Padding.Bottom();
-            Height.Set(total);
+            if (Horizontal)
+            {
+                total += Padding.Right();
+                Width.Set(total);
+            }
+            else
+            {
+                total += Padding.Bottom();
+                Height.Set(total);
+            }
         }
     }
 }

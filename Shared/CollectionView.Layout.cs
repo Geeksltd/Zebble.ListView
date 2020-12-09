@@ -20,8 +20,10 @@ namespace Zebble
 
             result.Ignored = true;
 
+            if (result.Css.Width is Length.AutoLengthRequest auto && auto.Strategy == Length.AutoStrategy.Container)
+                result.Css.Width(new Length.AutoLengthRequest(Length.AutoStrategy.Content));
+
             return result;
-            // .CssClass("list-item");
         }
 
         protected virtual View[] ViewItems() => AllChildren.Except(FindEmptyTemplate()).ToArray();
@@ -55,23 +57,41 @@ namespace Zebble
             }
 
             var mapping = ViewItems().Select(v => new ViewItem(v)).ToArray();
+            await Arrange(mapping);
 
+            foreach (var item in mapping.Except(x => x.IsInUse).ToArray())
+                await item.View.IgnoredAsync();
+        }
+
+        async Task Arrange(ViewItem[] mapping)
+        {
             var visibleFrom = 0f;
             var visibleTo = float.MaxValue;
 
             if (!IsNested() && Scroller != null)
             {
-                visibleFrom = (Scroller.ScrollY - OverRenderBuffer()).LimitMin(0);
-                visibleTo = Scroller.ScrollY + Scroller.ActualHeight + OverRenderBuffer();
+                if (Horizontal)
+                {
+                    visibleFrom = Scroller.ScrollX;
+                    visibleTo = Scroller.ScrollX + Scroller.ActualWidth;
+                }
+                else
+                {
+                    visibleFrom = Scroller.ScrollY;
+                    visibleTo = Scroller.ScrollY + Scroller.ActualHeight;
+                }
+
+                visibleFrom = (visibleFrom - OverRenderBuffer()).LimitMin(0);
+                visibleTo += OverRenderBuffer();
             }
 
             var counter = -1;
             foreach (var vm in source)
             {
                 counter++;
-                var yPosition = ItemYPositions.GetOrDefault(counter);
-                if (yPosition > visibleTo) break;
-                if (yPosition < visibleFrom) continue;
+                var position = ItemPositionOffsets.GetOrDefault(counter);
+                if (position > visibleTo) break;
+                if (position < visibleFrom) continue;
 
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
                 if (item == null)
@@ -86,14 +106,12 @@ namespace Zebble
                 }
 
                 item.IsInUse = true;
-                item.View.Y.Set(yPosition);
+                if (Horizontal) item.View.X.Set(position);
+                else item.View.Y.Set(position);
 
                 await item.View.IgnoredAsync(false);
                 if (item.View.Parent == null) await Add(item.View);
             }
-
-            foreach (var item in mapping.Except(x => x.IsInUse).ToArray())
-                await item.View.IgnoredAsync();
         }
 
         protected virtual float OverRenderBuffer() => 50;
