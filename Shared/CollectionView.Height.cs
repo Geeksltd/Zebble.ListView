@@ -9,10 +9,13 @@ namespace Zebble
     partial class CollectionView<TSource>
     {
         ConcurrentDictionary<Type, float> TemplateWithOrHeightCache = new ConcurrentDictionary<Type, float>();
-        Dictionary<int, float> ItemPositionOffsets;
+        Dictionary<int, Range<float>> ItemPositionOffsets;
 
         async Task<float> SizeOf(TSource item)
         {
+            var existing = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
+            if (existing != null) return SizeOf(existing);
+
             var viewType = GetViewType(item);
 
             if (TemplateWithOrHeightCache.TryGetValue(viewType, out var result)) return result;
@@ -25,13 +28,17 @@ namespace Zebble
         protected virtual async Task<float> GetSize(TSource exampleModel)
         {
             // Default implementation is to render an invisible item and see what its height is going to be.
-            var temp = CreateItemView(exampleModel);            
+            var temp = CreateItemView(exampleModel);
             await Add(temp);
+            return SizeOf(temp);
+        }
 
+        float SizeOf(View view)
+        {
             if (Horizontal)
-                return temp.ActualWidth + temp.Margin.Left() + temp.Margin.Right();
+                return view.ActualWidth + view.Margin.Left() + view.Margin.Right();
             else
-                return temp.ActualHeight + temp.Margin.Top() + temp.Margin.Bottom();
+                return view.ActualHeight + view.Margin.Top() + view.Margin.Bottom();
         }
 
         protected virtual async Task MeasureItems()
@@ -45,13 +52,13 @@ namespace Zebble
 
             var total = Horizontal ? Padding.Left() : Padding.Top();
             var counter = 0;
-            ItemPositionOffsets = new Dictionary<int, float>(source.Count());
+            ItemPositionOffsets = new Dictionary<int, Range<float>>(source.Count());
 
             foreach (var item in source)
             {
-                ItemPositionOffsets[counter] = total;
-
-                total += await SizeOf(item);
+                var size = await SizeOf(item);
+                ItemPositionOffsets[counter] = new Range<float>(total, total + size);
+                total += size;
                 counter++;
             }
 

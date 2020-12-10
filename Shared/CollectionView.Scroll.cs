@@ -65,9 +65,9 @@ namespace Zebble
             var offset = ItemPositionOffsets.GetOrDefault(index);
 
             if (Horizontal)
-                await Scroller.ScrollTo(0, offset, animate);
+                await Scroller.ScrollTo(0, offset.From, animate);
             else
-                await Scroller.ScrollTo(offset, 0, animate);
+                await Scroller.ScrollTo(offset.From, 0, animate);
 
             await Arrange();
             return true;

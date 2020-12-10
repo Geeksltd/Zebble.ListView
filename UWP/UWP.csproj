@@ -135,6 +135,7 @@
     <Error Condition="!Exists('..\Shared\Shared.projitems')" Text="This project references Shared that are missing on this computer." />
   </Target>
   <PropertyGroup>
-    <PostBuildEvent>copy /y $(TargetDir)Zebble.ListView.* E:\Nuget\packages\zebble.listview\4.10.174\lib\UAP10</PostBuildEvent>
+    <PostBuildEvent>copy /y $(TargetDir)Zebble.ListView.* E:\Nuget\packages\zebble.listview\4.10.176\ref\uap10.0
+copy /y $(TargetDir)Zebble.ListView.* E:\Nuget\packages\zebble.listview\4.10.176\runtimes\win10-x86\lib\uap10.0</PostBuildEvent>
   </PropertyGroup>
 </Project>

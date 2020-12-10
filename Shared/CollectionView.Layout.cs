@@ -36,9 +36,18 @@ namespace Zebble
             await WhenShown(async () =>
             {
                 HandleScrolling();
+                await Layout();
+                AllChildren.Do(x => x.Height.Changed.Handle(Layout));
+            });
+        }
+
+        public async Task Layout()
+        {
+            if (IsShown)
+            {
                 await MeasureItems();
                 await UIWorkBatch.Run(Arrange);
-            });
+            }
         }
 
         async Task LoadEmptyTemplate()
@@ -90,8 +99,8 @@ namespace Zebble
             {
                 counter++;
                 var position = ItemPositionOffsets.GetOrDefault(counter);
-                if (position > visibleTo) break;
-                if (position < visibleFrom) continue;
+                if (position.From > visibleTo) break;
+                if (position.To < visibleFrom) continue;
 
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
                 if (item == null)
@@ -100,17 +109,23 @@ namespace Zebble
                     item = mapping.FirstOrDefault(x => !x.IsInUse && x.View.GetType() == wantedType);
 
                     if (item == null)
+                    {
                         item = new ViewItem(CreateItemView(vm));
+                    }
 
                     item.Load(vm);
                 }
 
                 item.IsInUse = true;
-                if (Horizontal) item.View.X.Set(position);
-                else item.View.Y.Set(position);
+                if (Horizontal) item.View.X.Set(position.From);
+                else item.View.Y.Set(position.From);
 
                 await item.View.IgnoredAsync(false);
-                if (item.View.Parent == null) await Add(item.View);
+                if (item.View.Parent == null)
+                {
+                    await Add(item.View);
+                    if (IsShown) item.View.Height.Changed.Handle(Layout);
+                }
             }
         }
 
@@ -119,8 +134,3 @@ namespace Zebble
         protected virtual EmptyTemplate FindEmptyTemplate() => FindDescendent<EmptyTemplate>();
     }
 }
-// partial class CollectionView<TViewModel, TView>
-// {
-//    //public virtual TView[] ItemViews => this.AllChildren<TView>() /* for concurrency */ .ToArray();
-
-// }
