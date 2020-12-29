@@ -38,17 +38,26 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
+    <DefineConstants>UWP</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid')) ">
+    <DefineConstants>ANDROID</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" $(TargetFramework.StartsWith('Xamarin.iOS')) ">
+    <DefineConstants>IOS</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="Shared\**\*.cs" />
   </ItemGroup>
   <ItemGroup Condition=" $(TargetFramework.StartsWith('uap10.0')) ">
-    <Compile Include="\UWP\**\*.cs" />
+    <Compile Include="UWP\**\*.cs" />
   </ItemGroup>
   <ItemGroup Condition=" $(TargetFramework.StartsWith('MonoAndroid')) ">
-    <Compile Include="\Android\**\*.cs" />
+    <Compile Include="Android\**\*.cs" />
   </ItemGroup>
   <ItemGroup Condition=" $(TargetFramework.StartsWith('Xamarin.iOS')) ">
-    <Compile Include="\iOS\**\*.cs" />
+    <Compile Include="iOS\**\*.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
