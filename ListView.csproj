@@ -7,7 +7,7 @@
     <RootNamespace>Zebble</RootNamespace>
     <PackageId>Zebble.ListView</PackageId>
     <Product>$(AssemblyName) ($(TargetFramework))</Product>
-    <Version>4.10.177</Version>
+    <Version>4.10.179.0</Version>
     <PackOnBuild>true</PackOnBuild>
     <NeutralLanguage>en</NeutralLanguage>
     <LangVersion>default</LangVersion>
@@ -61,13 +61,13 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="Zebble" Version="4.5.418" />
+    <PackageReference Include="Zebble" Version="4.5.419" />
   </ItemGroup>
   <ItemGroup>
-	<None Remove=".gitignore" />
-	<None Remove="icon.png" />
-	<None Remove="README.md" />
-	<None Remove="Zebble-LicenseAgreement.txt" />
+    <None Remove=".gitignore" />
+    <None Remove="icon.png" />
+    <None Remove="README.md" />
+    <None Remove="Zebble-LicenseAgreement.txt" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Android\" />
