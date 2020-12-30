@@ -60,7 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="Zebble" Version="4.5.419" />
+    <PackageReference Include="Zebble" Version="4.5.422" />
   </ItemGroup>
   <ItemGroup>
     <None Remove=".gitignore" />

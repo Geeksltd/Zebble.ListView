@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Zebble.Device;
+using Log = Zebble.Device.Log;
+using Olive;
 
 namespace Zebble
 {

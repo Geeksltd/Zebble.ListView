@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Olive;
 
     public class Rotator<TSource, TTemplate> : View, IAutoContentHeightProvider
         where TTemplate : View, IListViewItem<TSource>, new()

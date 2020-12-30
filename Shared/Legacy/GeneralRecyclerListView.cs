@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Olive;
 
 namespace Zebble
 {
@@ -14,7 +15,7 @@ namespace Zebble
         Dictionary<int, float> Offsets = new Dictionary<int, float>();
 
         /// <summary>
-        /// This event will be fired when all datasource items are rendered and added to the list. 
+        /// This event will be fired when all data source items are rendered and added to the list. 
         /// </summary>
         public readonly AsyncEvent LazyLoadEnded = new AsyncEvent();
         public float Offset { get; set; } = 0;
@@ -116,7 +117,7 @@ namespace Zebble
 
         async Task RenderItems()
         {
-            using (await RenderLock.LockAsync())
+            using (await RenderLock.Lock())
             {
                 CalculateOffsets();
 
