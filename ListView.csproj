@@ -28,7 +28,6 @@
     <Authors>Geeks Ltd</Authors>
     <Copyright>Geeks Ltd 2020, All rights reserved.</Copyright>
     <DisableExtraReferences>true</DisableExtraReferences>
-    <UserSecretsId>7da458f2-1a4b-46a4-afe2-ad93dacfb292</UserSecretsId>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)'=='Debug' ">
     <DebugSymbols>true</DebugSymbols>
