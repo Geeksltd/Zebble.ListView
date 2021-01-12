@@ -81,7 +81,7 @@ namespace Zebble
 
             if (lastItem.Native == null) lastItem.ApplyCssToBranch().Wait();
             if (lastItem.Height.AutoOption.HasValue || lastItem.Height.PercentageValue.HasValue)
-                Log.For(this).Error(null, "Items in a lazy loaded list view must have an explicit height value.");
+                Log.For(this).Error("Items in a lazy loaded list view must have an explicit height value.");
 
             ItemHeight = lastItem.CalculateTotalHeight();
 

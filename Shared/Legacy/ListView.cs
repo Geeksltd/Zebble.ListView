@@ -59,7 +59,7 @@ namespace Zebble
                 var index = dataSource.IndexOf(item);
                 if (index == -1)
                 {
-                    Log.For(this).Error(null, "Invalid ListView.Remove() attempted for item '" + item + "': Item does not exist in the data source.");
+                    Log.For(this).Error("Invalid ListView.Remove() attempted for item '" + item + "': Item does not exist in the data source.");
                     return Task.CompletedTask;
                 }
 

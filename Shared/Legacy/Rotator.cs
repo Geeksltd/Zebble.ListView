@@ -107,7 +107,7 @@
             var index = List.ItemViews.IndexOf(SelectedRow);
             if (index == -1)
             {
-                Log.For(this).Error(null, "Item '" + SelectedItem + "' does not exist in this rotator's list of items.");
+                Log.For(this).Error("Item '" + SelectedItem + "' does not exist in this rotator's list of items.");
                 return Task.CompletedTask;
             }
 
