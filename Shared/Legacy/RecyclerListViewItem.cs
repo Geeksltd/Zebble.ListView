@@ -1,5 +1,7 @@
 ﻿namespace Zebble
 {
+    using Olive;
+
     public interface IRecyclerListViewItem<TSource> : IListViewItem<TSource>
     {
         new Bindable<TSource> Item { get; }

@@ -1,5 +1,7 @@
 ﻿namespace Zebble
 {
+    using Olive;
+
     public interface IGeneralRecyclerListViewItem : IListViewItem<object>
     {
         new Bindable<object> Item { get; }

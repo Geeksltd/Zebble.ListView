@@ -60,7 +60,7 @@
     <Compile Include="iOS\**\*.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Zebble" Version="4.5.444" />
+    <PackageReference Include="Zebble" Version="4.5.445" />
   </ItemGroup>
   <ItemGroup>
     <None Remove=".gitignore" />
