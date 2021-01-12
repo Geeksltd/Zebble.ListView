@@ -89,7 +89,7 @@
             var item = List.ItemViews.FirstOrDefault(x => selectedCriteria(x.Item));
 
             if (item == null)
-                Device.Log.Warning("The selected item was not found in the list of items.");
+                Log.For(this).Warning("The selected item was not found in the list of items.");
 
             return PreSelect(item);
         }
@@ -107,7 +107,7 @@
             var index = List.ItemViews.IndexOf(SelectedRow);
             if (index == -1)
             {
-                Device.Log.Error("Item '" + SelectedItem + "' does not exist in this rotator's list of items.");
+                Log.For(this).Error(null, "Item '" + SelectedItem + "' does not exist in this rotator's list of items.");
                 return Task.CompletedTask;
             }
 

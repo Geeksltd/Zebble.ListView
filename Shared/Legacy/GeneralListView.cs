@@ -4,6 +4,7 @@ namespace Zebble
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Olive;
 
     public abstract class GeneralListView : Canvas
     {
@@ -57,7 +58,7 @@ namespace Zebble
                 var index = dataSource.IndexOf(item);
                 if (index == -1)
                 {
-                    Device.Log.Error("Invalid ListView.Remove() attempted for item '" + item + "': Item does not exist in the data source.");
+                    Log.For(this).Error(null, "Invalid ListView.Remove() attempted for item '" + item + "': Item does not exist in the data source.");
                     return Task.CompletedTask;
                 }
 
@@ -95,7 +96,7 @@ namespace Zebble
                     Initialized.Handle(() => UpdateSource(value));
                 else
                 {
-                    Device.Log.Warning("To change a list view's data source at runtime, invoke UpdateSource() instead of setting DataSource property.");
+                    Log.For(this).Warning("To change a list view's data source at runtime, invoke UpdateSource() instead of setting DataSource property.");
                     UpdateSource(value).RunInParallel();
                 }
             }
