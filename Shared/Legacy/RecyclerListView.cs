@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Log = Zebble.Device.Log;
 using Olive;
 
 namespace Zebble
@@ -82,7 +81,7 @@ namespace Zebble
 
             if (lastItem.Native == null) lastItem.ApplyCssToBranch().Wait();
             if (lastItem.Height.AutoOption.HasValue || lastItem.Height.PercentageValue.HasValue)
-                Log.Error("Items in a lazy loaded list view must have an explicit height value.");
+                Log.For(this).Error(null, "Items in a lazy loaded list view must have an explicit height value.");
 
             ItemHeight = lastItem.CalculateTotalHeight();
 
