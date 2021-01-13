@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using Zebble.Mvvm;
 
 namespace Zebble
@@ -11,7 +10,7 @@ namespace Zebble
         protected IEnumerable<TSource> source;
         RepeatDirection direction = RepeatDirection.Vertical;
 
-        public CollectionView() => ClipChildren = false;
+        protected CollectionView() => ClipChildren = false;
 
         public RepeatDirection Direction
         {
@@ -34,7 +33,7 @@ namespace Zebble
             set
             {
                 if (source == value) return;
-                value = value ?? new TSource[0];
+                value ??= new TSource[0];
 
                 if (source is CollectionViewModel oldVm)
                     oldVm.Changed -= OnSourceChanged;

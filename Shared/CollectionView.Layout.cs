@@ -82,18 +82,20 @@ namespace Zebble
             {
                 if (Horizontal)
                 {
-                    visibleFrom = Scroller.ScrollX;
-                    visibleTo = Scroller.ScrollX + Scroller.ActualWidth;
+                    visibleFrom = Scroller.ScrollX - (ActualX - Scroller.ActualX);
+                    visibleTo = visibleFrom + Scroller.ActualWidth;
                 }
                 else
                 {
-                    visibleFrom = Scroller.ScrollY;
-                    visibleTo = Scroller.ScrollY + Scroller.ActualHeight;
+                    visibleFrom = Scroller.ScrollY - (ActualY - Scroller.ActualY);
+                    visibleTo = visibleFrom + Scroller.ActualHeight;
                 }
 
                 visibleFrom = (visibleFrom - OverRenderBuffer()).LimitMin(0);
                 visibleTo += OverRenderBuffer();
             }
+
+            mapping.Do(x => x.IsInUse = false);
 
             var counter = -1;
             foreach (var vm in source)
@@ -106,8 +108,8 @@ namespace Zebble
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
                 if (item == null)
                 {
-                    var wantedType = GetViewType(vm);
-                    item = mapping.FirstOrDefault(x => !x.IsInUse && x.View.GetType() == wantedType);
+                    var requiredType = GetViewType(vm);
+                    item = mapping.FirstOrDefault(x => !x.IsInUse && x.View.GetType() == requiredType);
 
                     if (item == null)
                     {

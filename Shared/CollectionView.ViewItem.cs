@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Zebble
+﻿namespace Zebble
 {
     partial class CollectionView<TSource>
     {
