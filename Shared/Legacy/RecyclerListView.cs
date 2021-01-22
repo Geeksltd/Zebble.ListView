@@ -13,21 +13,27 @@ namespace Zebble
         bool IsProcessingLazyLoading;
         float ItemHeight = 0;
 
+        /// <summary>
+        /// Recycling layout behaviour should be skipped for horizontal setting.
+        /// </summary>
+        bool IsVertical => Direction == RepeatDirection.Vertical;
+
         public RecyclerListView() => PseudoCssState = "lazy-loaded";
 
         public override async Task OnInitializing()
         {
             await base.OnInitializing();
 
-            await WhenShown(async () =>
-            {
-                var scroller = FindParent<ScrollView>();
-                if (scroller == null) return; // rare threading issue.
+            if (IsVertical)
+                await WhenShown(async () =>
+                {
+                    var scroller = FindParent<ScrollView>();
+                    if (scroller == null) return; // rare threading issue.
 
-                scroller.UserScrolledVertically.HandleOn(Thread.UI, () => OnUserScrolledVertically());
-                scroller.ScrollEnded.HandleOn(Thread.UI, () => OnUserScrolledVertically());
-                await CreateInitialItems();
-            });
+                    scroller.UserScrolledVertically.HandleOn(Thread.UI, () => OnUserScrolledVertically());
+                    scroller.ScrollEnded.HandleOn(Thread.UI, () => OnUserScrolledVertically());
+                    await CreateInitialItems();
+                });
         }
 
         /// <summary>
@@ -46,6 +52,12 @@ namespace Zebble
 
         protected override async Task CreateInitialItems()
         {
+            if (!IsVertical)
+            {
+                base.CreateInitialItems();
+                return;
+            }
+
             if (IsProcessingLazyLoading) return;
             IsProcessingLazyLoading = true;
 
@@ -71,10 +83,21 @@ namespace Zebble
             }
         }
 
-        public override TRowTemplate[] ItemViews => this.AllChildren<TRowTemplate>().Except(v => v.Ignored).ToArray();
+        public override TRowTemplate[] ItemViews
+        {
+            get
+            {
+                if (IsVertical)
+                    return this.AllChildren<TRowTemplate>().Except(v => v.Ignored).ToArray();
+                else
+                    return base.ItemViews;
+            }
+        }
 
         protected override float CalculateContentAutoHeight()
         {
+            if (!IsVertical) return base.CalculateContentAutoHeight();
+
             var lastItem = ItemViews.LastOrDefault();
 
             if (lastItem == null) return emptyTemplate?.ActualHeight ?? 0;
@@ -171,13 +194,18 @@ namespace Zebble
         protected override async Task OnEmptyTemplateChanged(EmptyTemplateChangedArg args)
         {
             await base.OnEmptyTemplateChanged(args);
-            await (this as IAutoContentHeightProvider).Changed.Raise();
+
+            if (IsVertical)
+                await (this as IAutoContentHeightProvider).Changed.Raise();
         }
 
         public override async Task<TView> Add<TView>(TView child, bool awaitNative = false)
         {
-            if (child is TRowTemplate row) await AddRow(row, awaitNative);
-            else await base.Add(child, awaitNative);
+            if (IsVertical && child is TRowTemplate row)
+                await AddRow(row, awaitNative);
+            else
+                await base.Add(child, awaitNative);
+
             return child;
         }
 
@@ -185,6 +213,9 @@ namespace Zebble
         {
             var position = LowestItemBottom;
             await base.Add(row, awaitNative);
+
+            if (!IsVertical) return;
+
             row.Y(position);
 
             // Hardcode on the same value to get rid of the dependencies.
@@ -198,8 +229,10 @@ namespace Zebble
 
         public override async Task Remove(View child, bool awaitNative = false)
         {
-            if (child is TRowTemplate row) await child.IgnoredAsync();
-            else await base.Remove(child, awaitNative);
+            if (IsVertical && child is TRowTemplate)
+                await child.IgnoredAsync();
+            else
+                await base.Remove(child, awaitNative);
         }
 
         TRowTemplate Recycle(TSource data)
@@ -212,7 +245,12 @@ namespace Zebble
             return result;
         }
 
-        public override Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true) =>
-            UIWorkBatch.Run(() => base.UpdateSource(source, reRenderItems));
+        public override Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true)
+        {
+            if (IsVertical)
+                return UIWorkBatch.Run(() => base.UpdateSource(source, reRenderItems));
+            else
+                return base.UpdateSource(source, reRenderItems);
+        }
     }
 }

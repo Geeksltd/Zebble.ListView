@@ -30,6 +30,7 @@ namespace Zebble
     public partial class GeneralListView<TSource, TRowTemplate> : GeneralListView
         where TRowTemplate : View, IListViewItem<TSource>, new()
     {
+        protected Guid DataSourceVersion;
         protected List<TSource> dataSource = new List<TSource>();
         protected object DataSourceSyncLock = new object();
 
@@ -63,6 +64,7 @@ namespace Zebble
                 }
 
                 dataSource.RemoveAt(index);
+                DataSourceVersion = Guid.NewGuid();
                 return RemoveAt(index, awaitNative);
             }
         }
@@ -105,7 +107,10 @@ namespace Zebble
         public virtual async Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true)
         {
             lock (DataSourceSyncLock)
+            {
                 dataSource = new List<TSource>(source ?? Enumerable.Empty<TSource>());
+                DataSourceVersion = Guid.NewGuid();
+            }
 
             if (!reRenderItems) return;
 

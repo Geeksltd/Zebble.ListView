@@ -87,17 +87,20 @@ namespace Zebble
 
         protected float CalculateHeight()
         {
-            float height = 0;
+            lock (DataSourceSyncLock)
+            {
+                float height = 0;
 
-            if (DataSource.Count() == 0)
-                return emptyTemplate?.ActualHeight ?? 0;
+                if (DataSource.Count() == 0)
+                    return emptyTemplate?.ActualHeight ?? 0;
 
-            foreach (var type in DataSource.Select(x => x.GetType()).Distinct())
-                height += DataSource.Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
+                foreach (var type in DataSource.Select(x => x.GetType()).Distinct())
+                    height += DataSource.Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
 
-            var totalHeight = Padding.Vertical() + height;
-            Scroller.CalculateContentSize();
-            return totalHeight;
+                var totalHeight = Padding.Vertical() + height;
+                Scroller.CalculateContentSize();
+                return totalHeight;
+            }
         }
 
         async Task OnUserScrolledVertically()
@@ -118,7 +121,16 @@ namespace Zebble
         async Task RenderItems()
         {
             using (await RenderLock.Lock())
+                await UIWorkBatch.Run(() => DoRenderItems());
+        }
+
+        Task DoRenderItems()
+        {
+            var adds = new List<Task>();
+
+            lock (DataSourceSyncLock)
             {
+                var version = DataSourceVersion;
                 CalculateOffsets();
 
                 var top = TopOfScreen - Offset;
@@ -132,7 +144,7 @@ namespace Zebble
                 {
                     var item = DataSource.ElementAt(index);
                     var position = GetOffset(item);
-                    if (position > bottom) return;
+                    if (position > bottom) break;
 
                     if (ItemViews.None(x => x.ActualY == position))
                     {
@@ -143,10 +155,12 @@ namespace Zebble
                         if (recycle != null)
                             recycle.Y(position).Item.Set(item);
                         else
-                            await UIWorkBatch.Run(() => Add(CreateItem(item), false));
+                            adds.Add(Add(CreateItem(item), awaitNative: false));
                     }
                 }
             }
+
+            return Task.WhenAll(adds);
         }
 
         void CalculateOffsets()
@@ -186,17 +200,20 @@ namespace Zebble
 
         float GetOffset(object data)
         {
-            var index = DataSource.IndexOf(data);
-            if (Offsets.ContainsKey(index)) return Offsets[index];
+            lock (DataSourceSyncLock)
+            {
+                var index = DataSource.IndexOf(data);
+                if (Offsets.ContainsKey(index)) return Offsets[index];
 
-            float offset = 0;
-            var item = DataSource.FirstOrDefault(x => x.Equals(data));
-            if (item == null) throw new Exception("Item is not in Datasource.");
+                float offset = 0;
+                var item = DataSource.FirstOrDefault(x => x.Equals(data));
+                if (item == null) throw new Exception("Item is not in Datasource.");
 
-            foreach (var type in DataSource.GetElementsBefore(item).Select(x => x.GetType()).Distinct())
-                offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
+                foreach (var type in DataSource.GetElementsBefore(item).Select(x => x.GetType()).Distinct())
+                    offset += DataSource.GetElementsBefore(item).Count(x => x.GetType() == type) * GetTemplateHeightOfType(type);
 
-            return Offsets.GetOrAdd(index, () => offset);
+                return Offsets.GetOrAdd(index, () => offset);
+            }
         }
 
         public override Task UpdateSource(IEnumerable<object> source, bool reRenderItems = true) =>
