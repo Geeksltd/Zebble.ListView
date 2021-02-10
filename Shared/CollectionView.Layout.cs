@@ -102,9 +102,16 @@ namespace Zebble
             {
                 counter++;
                 var position = ItemPositionOffsets.GetOrDefault(counter);
-                if (position.From > visibleTo) break;
-                if (position.To < visibleFrom) continue;
-
+                lock (position)
+                {
+                    if (position == null && ItemPositionOffsets.Any())
+                    {
+                        var firstItem = ItemPositionOffsets.FirstOrDefault();
+                        position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
+                    }
+                    if (position.From > visibleTo) break;
+                    if (position.To < visibleFrom) continue;
+                }
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
                 if (item == null)
                 {
@@ -118,7 +125,6 @@ namespace Zebble
 
                     item.Load(vm);
                 }
-
                 item.IsInUse = true;
                 if (Horizontal) item.View.X.Set(position.From);
                 else item.View.Y.Set(position.From);

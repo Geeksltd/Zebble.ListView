@@ -10,6 +10,7 @@ namespace Zebble
     partial class CollectionView<TSource>
     {
         ConcurrentDictionary<Type, float> TemplateWithOrHeightCache = new ConcurrentDictionary<Type, float>();
+        ConcurrentDictionary<Type, Gap> TemplateMarginCache = new ConcurrentDictionary<Type, Gap>();
         Dictionary<int, Range<float>> ItemPositionOffsets;
 
         async Task<float> SizeOf(TSource item)
@@ -21,6 +22,31 @@ namespace Zebble
 
             if (TemplateWithOrHeightCache.TryGetValue(viewType, out var result)) return result;
             return TemplateWithOrHeightCache[viewType] = await GetSize(item);
+        }
+        async Task<Gap> MarginOf(TSource item)
+        {
+            var existing = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
+            if (existing != null) return MarginOf(existing);
+
+            var viewType = GetViewType(item);
+
+            if (TemplateMarginCache.TryGetValue(viewType, out var result)) return result;
+            return TemplateMarginCache[viewType] = await GetMargin(item);
+        }
+
+        /// <summary>
+        /// This is only called once per view model type.
+        /// </summary>
+        protected virtual async Task<Gap> GetMargin(TSource exampleModel)
+        {
+            // Default implementation is to render an invisible item and see what its height is going to be.
+            var temp = CreateItemView(exampleModel);
+            await Add(temp);
+            return MarginOf(temp);
+        }
+        Gap MarginOf(View item)
+        {
+            return item.Margin;
         }
 
         /// <summary>
@@ -51,7 +77,10 @@ namespace Zebble
                 return;
             }
 
-            var total = Horizontal ? Padding.Left() : Padding.Top();
+            var total = Horizontal ? Padding.Left() : (Padding.Top() + Margin.Top());
+            var firstItem = source.FirstOrDefault();
+            if (firstItem != null)
+                total += (await MarginOf(firstItem)).Top();
             var counter = 0;
             ItemPositionOffsets = new Dictionary<int, Range<float>>(source.Count());
 
