@@ -90,7 +90,7 @@ namespace Zebble
         {
             get
             {
-                lock (DataSourceSyncLock) return dataSource ?? Enumerable.Empty<TSource>();
+                lock (DataSourceSyncLock) return dataSource.OrEmpty();
             }
             set
             {
@@ -108,7 +108,7 @@ namespace Zebble
         {
             lock (DataSourceSyncLock)
             {
-                dataSource = new List<TSource>(source ?? Enumerable.Empty<TSource>());
+                dataSource = new List<TSource>(source.OrEmpty());
                 DataSourceVersion = Guid.NewGuid();
             }
 

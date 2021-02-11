@@ -7,6 +7,8 @@ namespace Zebble
 {
     partial class CollectionView<TSource>
     {
+        Guid LayoutVersion;
+
         public class EmptyTemplate : Canvas { }
 
         protected virtual View CreateItemView(TSource viewModel)
@@ -24,6 +26,9 @@ namespace Zebble
             if (result.Css.Width is Length.AutoLengthRequest auto && auto.Strategy == Length.AutoStrategy.Container)
                 result.Css.Width(new Length.AutoLengthRequest(Length.AutoStrategy.Content));
 
+            (Direction == RepeatDirection.Horizontal ? result.Width : result.Height)
+                .Changed.Handle(ReLayoutIfShown);
+
             return result;
         }
 
@@ -37,43 +42,74 @@ namespace Zebble
             await WhenShown(async () =>
             {
                 HandleScrolling();
-                await Layout();
-                AllChildren.Do(x => x.Height.Changed.Handle(Layout));
+                await UpdateLayout();
             });
         }
 
-        public async Task Layout()
+        internal Task ReLayoutIfShown() => IsShown ? UpdateLayout() : Task.CompletedTask;
+
+        async Task UpdateLayout()
         {
-            if (IsShown)
+            var layoutVersion = LayoutVersion = Guid.NewGuid();
+
+            if (source.None())
             {
-                await MeasureItems();
-                await UIWorkBatch.Run(Arrange);
+                await LoadEmptyTemplate(layoutVersion);
+                if (layoutVersion == LayoutVersion)
+                    ResizeToEmptyTemplate();
+            }
+            else
+            {
+                await MeasureOffsets(layoutVersion);
+                if (layoutVersion == LayoutVersion)
+                {
+                    (Horizontal ? Width : Height).Set(GetTotalSize());
+                    await UIWorkBatch.Run(() => Arrange(layoutVersion));
+                }
             }
         }
 
-        async Task LoadEmptyTemplate()
+        float GetTotalSize()
         {
-            await (FindEmptyTemplate()?.IgnoredAsync(false) ?? Task.CompletedTask);
-            foreach (var item in CurrentChildren.Except(FindEmptyTemplate()))
-                await item.IgnoredAsync();
+            var lastItem = ItemPositionOffsets.LastOrDefault();
+            var result = lastItem.Value?.To ?? (Horizontal ? Padding.Left() : Padding.Top());
+            result += Horizontal ? Padding.Right() : Padding.Bottom();
+            return result;
         }
 
-        protected virtual async Task Arrange()
+        async Task LoadEmptyTemplate(Guid layoutVersion)
+        {
+            var template = FindEmptyTemplate();
+
+            if (template != null) await template.IgnoredAsync(false);
+
+            foreach (var item in CurrentChildren.Except(template))
+            {
+                if (LayoutVersion != layoutVersion) return;
+                await item.IgnoredAsync();
+            }
+        }
+
+        protected virtual async Task Arrange(Guid layoutVersion)
         {
             if (source.None())
             {
-                await LoadEmptyTemplate();
-                return;
+                await LoadEmptyTemplate(layoutVersion);
             }
+            else
+            {
+                var mapping = ViewItems().Select(v => new ViewItem(v)).ToArray();
+                await Arrange(mapping, layoutVersion);
 
-            var mapping = ViewItems().Select(v => new ViewItem(v)).ToArray();
-            await Arrange(mapping);
-
-            foreach (var item in mapping.Except(x => x.IsInUse).ToArray())
-                await item.View.IgnoredAsync();
+                foreach (var item in mapping.Except(x => x.IsInUse).ToArray())
+                {
+                    if (LayoutVersion != layoutVersion) return;
+                    await item.View.IgnoredAsync();
+                }
+            }
         }
 
-        async Task Arrange(ViewItem[] mapping)
+        async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
             var visibleFrom = 0f;
             var visibleTo = float.MaxValue;
@@ -119,9 +155,7 @@ namespace Zebble
                     item = mapping.FirstOrDefault(x => !x.IsInUse && x.View.GetType() == requiredType);
 
                     if (item == null)
-                    {
                         item = new ViewItem(CreateItemView(vm));
-                    }
 
                     item.Load(vm);
                 }
@@ -133,7 +167,7 @@ namespace Zebble
                 if (item.View.Parent == null)
                 {
                     await Add(item.View);
-                    if (IsShown) item.View.Height.Changed.Handle(Layout);
+                    if (layoutVersion != LayoutVersion) return;
                 }
             }
         }

@@ -30,7 +30,7 @@
             Scroller.ScrollEnded.HandleWith(async () =>
             {
                 await SetScrollPosition();
-                SelectionChanged.Raise();
+                await SelectionChanged.Raise();
             });
         }
 

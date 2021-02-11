@@ -25,7 +25,7 @@ namespace Zebble
 
             public View OldView { get; set; }
             public View NewView { get; set; }
-        };
+        }
     }
 
     public partial class ListView<TSource, TRowTemplate> : ListView
@@ -106,7 +106,7 @@ namespace Zebble
         public virtual async Task UpdateSource(IEnumerable<TSource> source, bool reRenderItems = true)
         {
             lock (DataSourceSyncLock)
-                dataSource = new ConcurrentList<TSource>(source ?? Enumerable.Empty<TSource>());
+                dataSource = new ConcurrentList<TSource>(source.OrEmpty());
 
             if (!reRenderItems) return;
 

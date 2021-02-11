@@ -50,7 +50,7 @@ namespace Zebble
 
             try
             {
-                await UIWorkBatch.Run(Arrange);
+                await UIWorkBatch.Run(() => Arrange(LayoutVersion));
             }
             finally
             {
@@ -70,7 +70,7 @@ namespace Zebble
             else
                 await Scroller.ScrollTo(offset.From, 0, animate);
 
-            await Arrange();
+            await Arrange(LayoutVersion);
             return true;
         }
     }

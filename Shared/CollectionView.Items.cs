@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Olive;
 using Zebble.Mvvm;
 
 namespace Zebble
@@ -52,11 +53,7 @@ namespace Zebble
             }
         }
 
-        protected virtual void OnSourceChanged()
-        {
-            if (!IsShown) return;
-            MeasureItems().ContinueWith(x => UIWorkBatch.Run(Arrange));
-        }
+        protected virtual void OnSourceChanged() => ReLayoutIfShown().RunInParallel();
 
         /// <summary>
         /// Gets the type of the view to render or recycle for the specified view model item.

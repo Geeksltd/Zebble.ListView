@@ -9,99 +9,55 @@ namespace Zebble
 {
     partial class CollectionView<TSource>
     {
-        ConcurrentDictionary<Type, float> TemplateWithOrHeightCache = new ConcurrentDictionary<Type, float>();
-        ConcurrentDictionary<Type, Gap> TemplateMarginCache = new ConcurrentDictionary<Type, Gap>();
         Dictionary<int, Range<float>> ItemPositionOffsets;
+        ConcurrentDictionary<Type, Measurement> TemplateMeasuresCache = new();
+        ConcurrentDictionary<Type, Task<View>> TemplateRendering = new();
 
-        async Task<float> SizeOf(TSource item)
+        protected virtual async Task MeasureOffsets(Guid layoutVersion)
         {
-            var existing = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
-            if (existing != null) return SizeOf(existing);
-
-            var viewType = GetViewType(item);
-
-            if (TemplateWithOrHeightCache.TryGetValue(viewType, out var result)) return result;
-            return TemplateWithOrHeightCache[viewType] = await GetSize(item);
-        }
-        async Task<Gap> MarginOf(TSource item)
-        {
-            var existing = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
-            if (existing != null) return MarginOf(existing);
-
-            var viewType = GetViewType(item);
-
-            if (TemplateMarginCache.TryGetValue(viewType, out var result)) return result;
-            return TemplateMarginCache[viewType] = await GetMargin(item);
-        }
-
-        /// <summary>
-        /// This is only called once per view model type.
-        /// </summary>
-        protected virtual async Task<Gap> GetMargin(TSource exampleModel)
-        {
-            // Default implementation is to render an invisible item and see what its height is going to be.
-            var temp = CreateItemView(exampleModel);
-            await Add(temp);
-            return MarginOf(temp);
-        }
-        Gap MarginOf(View item)
-        {
-            return item.Margin;
-        }
-
-        /// <summary>
-        /// This is only called once per view model type.
-        /// </summary>
-        protected virtual async Task<float> GetSize(TSource exampleModel)
-        {
-            // Default implementation is to render an invisible item and see what its height is going to be.
-            var temp = CreateItemView(exampleModel);
-            await Add(temp);
-            return SizeOf(temp);
-        }
-
-        float SizeOf(View view)
-        {
-            if (Horizontal)
-                return view.ActualWidth + view.Margin.Left() + view.Margin.Right();
-            else
-                return view.ActualHeight + view.Margin.Top() + view.Margin.Bottom();
-        }
-
-        protected virtual async Task MeasureItems()
-        {
-            if (source.None())
-            {
-                if (Horizontal) Width.Set(FindEmptyTemplate()?.ActualWidth ?? 0);
-                else Height.Set(FindEmptyTemplate()?.ActualHeight ?? 0);
-                return;
-            }
-
-            var total = Horizontal ? Padding.Left() : (Padding.Top() + Margin.Top());
-            var firstItem = source.FirstOrDefault();
-            if (firstItem != null)
-                total += (await MarginOf(firstItem)).Top();
+            ItemPositionOffsets = new(source.Count());
             var counter = 0;
-            ItemPositionOffsets = new Dictionary<int, Range<float>>(source.Count());
+
+            var from = Horizontal ? Padding.Left() : Padding.Top();
 
             foreach (var item in source)
             {
-                var size = await SizeOf(item);
-                ItemPositionOffsets[counter] = new Range<float>(total, total + size);
-                total += size;
+                var measure = await Measure(item);
+                if (layoutVersion != LayoutVersion) return;
+
+                if (counter == 0) from += measure.Margin;
+
+                ItemPositionOffsets[counter] = new Range<float>(from, from + measure.Size);
+                from += measure.Size;
                 counter++;
             }
+        }
 
-            if (Horizontal)
+        async Task<Measurement> Measure(TSource item)
+        {
+            var actual = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
+            if (actual != null)
             {
-                total += Padding.Right();
-                Width.Set(total);
+                return new Measurement(Direction, actual);
             }
             else
             {
-                total += Padding.Bottom();
-                Height.Set(total);
+                var viewType = GetViewType(item);
+
+                if (TemplateMeasuresCache.TryGetValue(viewType, out var result))
+                    return result;
+                else
+                {
+                    var rendering = TemplateRendering.GetOrAdd(viewType, t => Add(CreateItemView(item)));
+                    return TemplateMeasuresCache[viewType] = new Measurement(Direction, await rendering);
+                }
             }
+        }
+
+        void ResizeToEmptyTemplate()
+        {
+            if (Horizontal) Width.Set(FindEmptyTemplate()?.ActualWidth ?? 0);
+            else Height.Set(FindEmptyTemplate()?.ActualHeight ?? 0);
         }
     }
 }
