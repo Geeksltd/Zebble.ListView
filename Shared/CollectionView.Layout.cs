@@ -26,8 +26,18 @@ namespace Zebble
             if (result.Css.Width is Length.AutoLengthRequest auto && auto.Strategy == Length.AutoStrategy.Container)
                 result.Css.Width(new Length.AutoLengthRequest(Length.AutoStrategy.Content));
 
-            (Direction == RepeatDirection.Horizontal ? result.Width : result.Height)
-                .Changed.Handle(ReLayoutIfShown);
+            if (Horizontal)
+            {
+                result.Width.Changed.Handle(ReLayoutIfShown);
+                result.Margin.Left.Changed.Handle(ReLayoutIfShown);
+                result.Margin.Right.Changed.Handle(ReLayoutIfShown);
+            }
+            else
+            {
+                result.Height.Changed.Handle(ReLayoutIfShown);
+                result.Margin.Top.Changed.Handle(ReLayoutIfShown);
+                result.Margin.Bottom.Changed.Handle(ReLayoutIfShown);
+            }
 
             return result;
         }
