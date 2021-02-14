@@ -72,4 +72,7 @@
     <Folder Include="iOS\" />
     <Folder Include="UWP\" />
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="update-local-nuget-cache" />
+  </Target>
 </Project>
