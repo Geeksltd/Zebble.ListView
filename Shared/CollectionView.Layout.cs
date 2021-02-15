@@ -147,26 +147,31 @@ namespace Zebble
             foreach (var vm in source)
             {
                 counter++;
+
                 var position = ItemPositionOffsets.GetOrDefault(counter);
-                lock (position)
+
+                if (position is null)
                 {
-                    if (position == null && ItemPositionOffsets.Any())
+                    if (layoutVersion != LayoutVersion) return;
+                    if (ItemPositionOffsets.Any())
                     {
                         var firstItem = ItemPositionOffsets.FirstOrDefault();
                         position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
                     }
-                    if (position.From > visibleTo) break;
-                    if (position.To < visibleFrom) continue;
+
+                    if (position is null) break;
                 }
+
+                if (position.From > visibleTo) break;
+                if (position.To < visibleFrom) continue;
+
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
-                if (item == null)
+                if (item is null)
                 {
                     var requiredType = GetViewType(vm);
                     item = mapping.FirstOrDefault(x => !x.IsInUse && x.View.GetType() == requiredType);
 
-                    if (item == null)
-                        item = new ViewItem(CreateItemView(vm));
-
+                    item ??= new ViewItem(CreateItemView(vm));
                     item.Load(vm);
                 }
                 item.IsInUse = true;
