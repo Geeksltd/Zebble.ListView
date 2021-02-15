@@ -10,7 +10,7 @@ namespace Zebble
 
     public class SelectionView<TSource, TView> : CollectionView<TSource, TView>, ISelectionView
         where TSource : class
-        where TView : ITemplate<TSource>, new()
+        where TView : ISelectableTemplate<TSource>, new()
     {
         protected IEnumerable<TSource> selected;
 
@@ -43,13 +43,13 @@ namespace Zebble
 
         protected override View CreateItemView(TSource viewModel)
         {
-            //var type = GetViewType(viewModel);
-            //if (!type.IsA<ISelectableTemplate<TSource>>())
-            //    throw new Exception(type.GetProgrammingName() + " does not implement ISelectableTemplate.");
+            var type = GetViewType(viewModel);
+            if (!type.IsA<ISelectableTemplate<TSource>>())
+                throw new Exception($"{type.GetProgrammingName()} does not implement {nameof(ISelectableTemplate<TSource>)}.");
 
             var result = base.CreateItemView(viewModel);
 
-            //((ISelectableTemplate<TSource>)result).ToggleSelection += OnToggleSelection;
+            ((ISelectableTemplate<TSource>)result).ToggleSelection += OnToggleSelection;
 
             // TODO: how to unbind when View is gone?
 
