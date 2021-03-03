@@ -15,12 +15,12 @@ namespace Zebble
 
         protected virtual async Task MeasureOffsets(Guid layoutVersion)
         {
-            ItemPositionOffsets = new(source.Count());
+            ItemPositionOffsets = new(OnSource(x => x.Count()));
             var counter = 0;
 
             var from = Horizontal ? Padding.Left() : Padding.Top();
 
-            foreach (var item in source)
+            foreach (var item in OnSource(x => x.ToArray()))
             {
                 var measure = await Measure(item);
                 if (layoutVersion != LayoutVersion) return;

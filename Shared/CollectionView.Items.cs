@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Olive;
 using Zebble.Mvvm;
 
@@ -10,6 +11,13 @@ namespace Zebble
     {
         protected IEnumerable<TSource> source;
         RepeatDirection direction = RepeatDirection.Vertical;
+
+        TResult OnSource<TResult>(Func<IEnumerable<TSource>, TResult> query)
+        {
+            if (source is null) return default;
+            lock (source)
+                return query(source);
+        }
 
         protected CollectionView() => ClipChildren = false;
 
@@ -39,17 +47,16 @@ namespace Zebble
                 if (source is BindableCollection oldVm)
                     oldVm.Changed -= OnSourceChanged;
 
-                if (source != null)
+                var firstTime = source is null;
+
+                if (value is BindableCollection newVm)
                 {
                     source = value;
-                    OnSourceChanged();
+                    newVm.Changed += OnSourceChanged;
                 }
-                else
-                {
-                    source = value;
-                    if (value is BindableCollection newVm)
-                        newVm.Changed += OnSourceChanged;
-                }
+                else source = value.ToArray();
+
+                OnSourceChanged();
             }
         }
 

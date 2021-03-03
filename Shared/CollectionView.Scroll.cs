@@ -60,7 +60,8 @@ namespace Zebble
 
         public async Task<bool> ScrollToItem(TSource viewModel, bool animate = false)
         {
-            var index = source.OrEmpty().IndexOf(viewModel);
+            if (source is null) return false;
+            var index = OnSource(x => x.OrEmpty().IndexOf(viewModel));
             if (index == -1) return false;
 
             var offset = ItemPositionOffsets.GetOrDefault(index);

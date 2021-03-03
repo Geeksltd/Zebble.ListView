@@ -47,7 +47,7 @@ namespace Zebble
         public override async Task OnRendered()
         {
             await base.OnRendered();
-            await (FindEmptyTemplate()?.IgnoredAsync(!source.None()) ?? Task.CompletedTask);
+            await (FindEmptyTemplate()?.IgnoredAsync(OnSource(x => x.Any())) ?? Task.CompletedTask);
 
             await WhenShown(async () =>
             {
@@ -62,7 +62,7 @@ namespace Zebble
         {
             var layoutVersion = LayoutVersion = Guid.NewGuid();
 
-            if (source.None())
+            if (OnSource(x => x.None()))
             {
                 await LoadEmptyTemplate(layoutVersion);
                 if (layoutVersion == LayoutVersion)
@@ -102,7 +102,7 @@ namespace Zebble
 
         protected virtual async Task Arrange(Guid layoutVersion)
         {
-            if (source.None())
+            if (OnSource(x => x.None()))
             {
                 await LoadEmptyTemplate(layoutVersion);
             }
@@ -119,32 +119,39 @@ namespace Zebble
             }
         }
 
-        async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
+        Range<float> GetVisibleRange()
         {
-            var visibleFrom = 0f;
-            var visibleTo = float.MaxValue;
+            var from = 0f;
+            var to = float.MaxValue;
 
             if (!IsNested() && Scroller != null)
             {
                 if (Horizontal)
                 {
-                    visibleFrom = Scroller.ScrollX - (ActualX - Scroller.ActualX);
-                    visibleTo = visibleFrom + Scroller.ActualWidth;
+                    from = Scroller.ScrollX - (ActualX - Scroller.ActualX);
+                    to = from + Scroller.ActualWidth;
                 }
                 else
                 {
-                    visibleFrom = Scroller.ScrollY - (ActualY - Scroller.ActualY);
-                    visibleTo = visibleFrom + Scroller.ActualHeight;
+                    from = Scroller.ScrollY - (ActualY - Scroller.ActualY);
+                    to = from + Scroller.ActualHeight;
                 }
 
-                visibleFrom = (visibleFrom - OverRenderBuffer()).LimitMin(0);
-                visibleTo += OverRenderBuffer();
+                from = (from - OverRenderBuffer()).LimitMin(0);
+                to += OverRenderBuffer();
             }
+
+            return new Range<float>(from, to);
+        }
+
+        async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
+        {
+            var visibleRange = GetVisibleRange();
 
             mapping.Do(x => x.IsInUse = false);
 
             var counter = -1;
-            foreach (var vm in source)
+            foreach (var vm in OnSource(x => x.ToArray()))
             {
                 counter++;
 
@@ -162,8 +169,8 @@ namespace Zebble
                     if (position is null) break;
                 }
 
-                if (position.From > visibleTo) break;
-                if (position.To < visibleFrom) continue;
+                if (position.From > visibleRange.To) break;
+                if (position.To < visibleRange.From) continue;
 
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
                 if (item is null)
