@@ -44,12 +44,12 @@ namespace Zebble
                 if (source == value) return;
                 value ??= new TSource[0];
 
-                if (source is BindableCollection oldVm)
+                if (source is IBindableCollection oldVm)
                     oldVm.Changed -= OnSourceChanged;
 
                 var firstTime = source is null;
 
-                if (value is BindableCollection newVm)
+                if (value is IBindableCollection newVm)
                 {
                     source = value;
                     newVm.Changed += OnSourceChanged;
