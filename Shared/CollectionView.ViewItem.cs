@@ -1,4 +1,7 @@
-﻿namespace Zebble
+﻿using Olive;
+using System.Diagnostics;
+
+namespace Zebble
 {
     partial class CollectionView<TSource>
     {
@@ -16,9 +19,20 @@
 
             internal void Load(TSource vm)
             {
-                Item = vm;
-                View.SetViewModelValue(vm);
-                View.RefreshBindings();
+                //Item = vm;
+                //View.SetViewModelValue(vm);
+                //View.RefreshBindings();
+
+                //see if we can notice a change
+                View.Data.Add("IsBeingRecycled", true);
+                View.ChangeInBatch(() =>
+                {
+                    Item = vm;
+                    View.SetViewModelValue(vm);
+                    View.RefreshBindings();
+                });
+                View.Data.Remove("IsBeingRecycled");
+                Debug.WriteLine($"{LocalTime.Now}: Recycled");
             }
         }
     }

@@ -60,7 +60,7 @@ namespace Zebble
             }
         }
 
-        protected virtual void OnSourceChanged() => ReLayoutIfShown().RunInParallel();
+        protected virtual void OnSourceChanged() => ReLayoutIfShown("Source Changed").RunInParallel();
 
         /// <summary>
         /// Gets the type of the view to render or recycle for the specified view model item.

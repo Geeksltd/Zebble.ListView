@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Olive;
@@ -8,6 +9,8 @@ namespace Zebble
     partial class CollectionView<TSource>
     {
         Guid LayoutVersion;
+
+        EmptyTemplate emptyTemplate;
 
         public class EmptyTemplate : Canvas { }
 
@@ -28,15 +31,15 @@ namespace Zebble
 
             if (Horizontal)
             {
-                result.Width.Changed.Handle(ReLayoutIfShown);
-                result.Margin.Left.Changed.Handle(ReLayoutIfShown);
-                result.Margin.Right.Changed.Handle(ReLayoutIfShown);
+                result.Width.Changed.Handle(() => ReLayoutIfShown("Width Changed", result));
+                result.Margin.Left.Changed.Handle(() => ReLayoutIfShown("Margin Left Changed", result));
+                result.Margin.Right.Changed.Handle(() => ReLayoutIfShown("Margin Right Changed", result));
             }
             else
             {
-                result.Height.Changed.Handle(ReLayoutIfShown);
-                result.Margin.Top.Changed.Handle(ReLayoutIfShown);
-                result.Margin.Bottom.Changed.Handle(ReLayoutIfShown);
+                result.Height.Changed.Handle(() => ReLayoutIfShown("Height Changed", result));
+                result.Margin.Top.Changed.Handle(() => ReLayoutIfShown("Margin Top Changed", result));
+                result.Margin.Bottom.Changed.Handle(() => ReLayoutIfShown("Margin Bottom Changed", result));
             }
 
             return result;
@@ -56,10 +59,24 @@ namespace Zebble
             });
         }
 
+        internal Task ReLayoutIfShown(string origin, View view = null) 
+        {
+            if (view != null && view.Data.ContainsKey("IsBeingRecycled"))
+                return Task.CompletedTask;
+
+            Debug.WriteLine($"{LocalTime.Now}: {origin}");
+
+            return IsShown ? UpdateLayout() : Task.CompletedTask;
+        }
+
+        //Add a wrapper method to log origins of this
         internal Task ReLayoutIfShown() => IsShown ? UpdateLayout() : Task.CompletedTask;
 
         async Task UpdateLayout()
         {
+            if (IsCreatingItem)
+                return;
+
             var layoutVersion = LayoutVersion = Guid.NewGuid();
 
             if (OnSource(x => x.None()))
@@ -74,7 +91,8 @@ namespace Zebble
                 if (layoutVersion == LayoutVersion)
                 {
                     (Horizontal ? Width : Height).Set(GetTotalSize());
-                    await UIWorkBatch.Run(() => Arrange(layoutVersion));
+
+                    await BatchArrange(layoutVersion, "From UpdateLayout");
                 }
             }
         }
@@ -144,22 +162,39 @@ namespace Zebble
             return new Range<float>(from, to);
         }
 
+        //bool ShowLog;
+
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
+            if (layoutVersion != LayoutVersion) return;
+
             var visibleRange = GetVisibleRange();
+
+            //if (ShowLog)
+            //{
+            //    if (layoutVersion != LayoutVersion) return;
+            //    Debug.WriteLine($"visibleRange.From={visibleRange.From}, visibleRange.To={visibleRange.To}");
+            //    foreach (var item in ItemPositionOffsets.ToArray())
+            //    {
+            //        var isInRange = item.Value.From <= visibleRange.To && item.Value.To >= visibleRange.From;
+
+            //        Debug.WriteLine($"ItemPositionOffsets[{item.Key.ToString().PadLeft(2, '0')}]=" + item.Value + "*".OnlyWhen(isInRange));
+            //    }
+            //}
 
             mapping.Do(x => x.IsInUse = false);
 
             var counter = -1;
             foreach (var vm in OnSource(x => x.ToArray()))
             {
+                if (layoutVersion != LayoutVersion) return;
+
                 counter++;
 
                 var position = ItemPositionOffsets.GetOrDefault(counter);
 
                 if (position is null)
                 {
-                    if (layoutVersion != LayoutVersion) return;
                     if (ItemPositionOffsets.Any())
                     {
                         var firstItem = ItemPositionOffsets.FirstOrDefault();
@@ -180,6 +215,7 @@ namespace Zebble
 
                     item ??= new ViewItem(CreateItemView(vm));
                     item.Load(vm);
+                    await item.View.ReusedInCollectionView.Raise();
                 }
                 item.IsInUse = true;
                 if (Horizontal) item.View.X.Set(position.From);
@@ -187,15 +223,12 @@ namespace Zebble
 
                 await item.View.IgnoredAsync(false);
                 if (item.View.Parent == null)
-                {
                     await Add(item.View);
-                    if (layoutVersion != LayoutVersion) return;
-                }
             }
         }
 
         protected virtual float OverRenderBuffer() => 50;
 
-        protected virtual EmptyTemplate FindEmptyTemplate() => FindDescendent<EmptyTemplate>();
+        protected virtual EmptyTemplate FindEmptyTemplate() => emptyTemplate ??= FindDescendent<EmptyTemplate>();
     }
 }

@@ -15,9 +15,10 @@ namespace Zebble
 
         protected virtual async Task MeasureOffsets(Guid layoutVersion)
         {
-            ItemPositionOffsets = new(OnSource(x => x.Count()));
+            var newOffsets = new Dictionary<int, Range<float>>(OnSource(x => x.Count()));
+            
             var counter = 0;
-
+             
             var from = Horizontal ? Padding.Left() : Padding.Top();
 
             foreach (var item in OnSource(x => x.ToArray()))
@@ -27,11 +28,14 @@ namespace Zebble
 
                 if (counter == 0) from += measure.Margin;
 
-                ItemPositionOffsets[counter] = new Range<float>(from, from + measure.Size);
+                newOffsets[counter] = new Range<float>(from, from + measure.Size);
                 from += measure.Size;
                 counter++;
             }
+            ItemPositionOffsets = newOffsets;
         }
+
+        bool IsCreatingItem;
 
         async Task<Measurement> Measure(TSource item)
         {
@@ -48,7 +52,18 @@ namespace Zebble
                     return result;
                 else
                 {
-                    var rendering = TemplateRendering.GetOrAdd(viewType, t => Add(CreateItemView(item)));
+                    var rendering = TemplateRendering.GetOrAdd(viewType, async t =>
+                    {
+                        try
+                        {
+                            IsCreatingItem = true;
+                            return await Add(CreateItemView(item));
+                        }
+                        finally
+                        {
+                            IsCreatingItem = false;
+                        }
+                    });
                     return TemplateMeasuresCache[viewType] = new Measurement(Direction, await rendering);
                 }
             }

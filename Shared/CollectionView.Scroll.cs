@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.Linq;
 using Olive;
+using System.Diagnostics;
 
 namespace Zebble
 {
@@ -37,6 +38,9 @@ namespace Zebble
 
         async Task OnUserScrolled(bool mandatory = false)
         {
+            if (mandatory)
+                LayoutVersion = Guid.NewGuid();
+
             if (IsProcessingLazyLoading)
             {
                 if (!mandatory) return;
@@ -48,14 +52,11 @@ namespace Zebble
 
             IsProcessingLazyLoading = true;
 
-            try
-            {
-                await UIWorkBatch.Run(() => Arrange(LayoutVersion));
-            }
-            finally
-            {
-                IsProcessingLazyLoading = false;
-            }
+
+            Task.Run(() => BatchArrange(LayoutVersion, "From OnUserScrolled"))
+                .WithTimeout(TimeSpan.FromSeconds(1), timeoutAction: () => IsProcessingLazyLoading = false)
+                .ContinueWith((t) => IsProcessingLazyLoading = false)
+                .RunInParallel();
         }
 
         public async Task<bool> ScrollToItem(TSource viewModel, bool animate = false)
