@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Olive;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Zebble
 {
@@ -27,11 +28,12 @@ namespace Zebble
             Debug.WriteLine(DateTime.Now.ToString("mm:ss") + " " + originMethodName);
 
             await UIWorkBatch.Run(async () =>
-            {
-                await Arrange(layoutVersion);
-            });
+               {
+                   await Arrange(layoutVersion);
+               });
 
             IsUIBatchRunning = false;
+
         }
     }
 }

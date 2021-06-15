@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Olive;
 
@@ -11,6 +13,7 @@ namespace Zebble
         Guid LayoutVersion;
 
         EmptyTemplate emptyTemplate;
+        DateTime nextLayoutSchedule;
 
         public class EmptyTemplate : Canvas { }
 
@@ -59,14 +62,20 @@ namespace Zebble
             });
         }
 
-        internal Task ReLayoutIfShown(string origin, View view = null) 
+        internal async Task ReLayoutIfShown(string origin, View view = null)
         {
-            if (view != null && view.Data.ContainsKey("IsBeingRecycled"))
-                return Task.CompletedTask;
+            if (!IsShown) return;
+            if (LocalTime.Now < nextLayoutSchedule)
+                return;
 
-            Debug.WriteLine($"{LocalTime.Now}: {origin}");
+            nextLayoutSchedule = LocalTime.Now.AddMilliseconds(16);
+            await Task.Delay(16);
 
-            return IsShown ? UpdateLayout() : Task.CompletedTask;
+            if (LocalTime.Now < nextLayoutSchedule)
+                return;
+
+            await UpdateLayout();
+
         }
 
         //Add a wrapper method to log origins of this
@@ -120,6 +129,8 @@ namespace Zebble
 
         protected virtual async Task Arrange(Guid layoutVersion)
         {
+            Debug.WriteLine($"Arrange method calls: {layoutVersion}");
+
             if (OnSource(x => x.None()))
             {
                 await LoadEmptyTemplate(layoutVersion);
@@ -166,6 +177,8 @@ namespace Zebble
 
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
+            Debug.WriteLine($"Arrange mapping method calls: {layoutVersion}");
+
             if (layoutVersion != LayoutVersion) return;
 
             var visibleRange = GetVisibleRange();
@@ -187,7 +200,7 @@ namespace Zebble
             var counter = -1;
             foreach (var vm in OnSource(x => x.ToArray()))
             {
-                if (layoutVersion != LayoutVersion) return;
+                //if (layoutVersion != LayoutVersion) return;
 
                 counter++;
 
@@ -201,8 +214,11 @@ namespace Zebble
                         position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
                     }
 
-                    if (position is null) break;
+                    //if (position is null) break;
                 }
+
+                var from = position.From;
+                var to = position.To;
 
                 if (position.From > visibleRange.To) break;
                 if (position.To < visibleRange.From) continue;
@@ -214,14 +230,23 @@ namespace Zebble
                     item = mapping.FirstOrDefault(x => !x.IsInUse && x.View.GetType() == requiredType);
 
                     item ??= new ViewItem(CreateItemView(vm));
-                    item.Load(vm);
-                    await item.View.ReusedInCollectionView.Raise();
+                    if (item.Item != vm)
+                        item.Load(vm);
+
+                    //await item.View.ReusedInCollectionView.Raise();
                 }
+
+
                 item.IsInUse = true;
                 if (Horizontal) item.View.X.Set(position.From);
                 else item.View.Y.Set(position.From);
 
+                Debug.WriteLine($"Set vertical align: {position.From}");
+
+
                 await item.View.IgnoredAsync(false);
+
+
                 if (item.View.Parent == null)
                     await Add(item.View);
             }

@@ -16,7 +16,7 @@ namespace Zebble
         float? OriginalContentX;
 
         public TimeSpan SwipeAnimationDuration = Animation.DefaultListItemSlideDuration;
-        public readonly Stack Content = new Stack { Direction = RepeatDirection.Horizontal, Id = "Content" };
+        public readonly Stack Content = new Stack {  Direction = RepeatDirection.Horizontal, Id = "Content" };
 
         public readonly Stack RightSlideIn = new Stack
         {

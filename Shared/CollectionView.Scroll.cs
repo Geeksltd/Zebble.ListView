@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using Olive;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Zebble
 {
@@ -11,6 +12,7 @@ namespace Zebble
     partial class CollectionView<TSource> : ICollectionView
     {
         bool IsProcessingLazyLoading;
+        DateTime nextScrollSchedule;
         ScrollView scroller;
         ScrollView Scroller
         {
@@ -31,13 +33,23 @@ namespace Zebble
         {
             if (Scroller == null) return;
 
-            Scroller.UserScrolledVertically.Event += () => OnUserScrolled().RunInParallel();
-            Scroller.UserScrolledHorizontally.Event += () => OnUserScrolled().RunInParallel();
-            Scroller.ScrollEnded.Event += () => OnUserScrolled(mandatory: true).RunInParallel();
+            Scroller.UserScrolledVertically.Event += () => OnUserScrolled();
+            Scroller.UserScrolledHorizontally.Event += () => OnUserScrolled();
+            Scroller.ScrollEnded.Event += () => OnUserScrolled(mandatory: true);
         }
 
-        async Task OnUserScrolled(bool mandatory = false)
+        async void OnUserScrolled(bool mandatory = false)
         {
+            if (LocalTime.Now < nextScrollSchedule)
+                return;
+
+
+            nextScrollSchedule = LocalTime.Now.AddMilliseconds(16);
+            await Task.Delay(16);
+
+            if (LocalTime.Now < nextScrollSchedule)
+                return;
+
             if (mandatory)
                 LayoutVersion = Guid.NewGuid();
 
@@ -52,11 +64,11 @@ namespace Zebble
 
             IsProcessingLazyLoading = true;
 
-
             Task.Run(() => BatchArrange(LayoutVersion, "From OnUserScrolled"))
-                .WithTimeout(TimeSpan.FromSeconds(1), timeoutAction: () => IsProcessingLazyLoading = false)
-                .ContinueWith((t) => IsProcessingLazyLoading = false)
-                .RunInParallel();
+            .WithTimeout(TimeSpan.FromSeconds(1), timeoutAction: () => IsProcessingLazyLoading = false)
+            .ContinueWith((t) => IsProcessingLazyLoading = false)
+            .RunInParallel();
+
         }
 
         public async Task<bool> ScrollToItem(TSource viewModel, bool animate = false)
