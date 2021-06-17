@@ -18,14 +18,11 @@ namespace Zebble
                 await Task.Delay(10);
                 if (LayoutVersion != layoutVersion)
                 {
-                    Debug.WriteLine(DateTime.Now.ToString("mm:ss") + " cancelled Arrange");
                     return;
                 }
             }
 
             IsUIBatchRunning = true;
-
-            Debug.WriteLine(DateTime.Now.ToString("mm:ss") + " " + originMethodName);
 
             await UIWorkBatch.Run(async () =>
                {

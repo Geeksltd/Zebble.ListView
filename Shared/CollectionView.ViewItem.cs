@@ -32,7 +32,6 @@ namespace Zebble
                     View.RefreshBindings();
                 });
                 View.Data.Remove("IsBeingRecycled");
-                Debug.WriteLine($"{LocalTime.Now}: Recycled");
             }
         }
     }

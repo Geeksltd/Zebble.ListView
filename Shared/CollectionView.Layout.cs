@@ -129,7 +129,6 @@ namespace Zebble
 
         protected virtual async Task Arrange(Guid layoutVersion)
         {
-            Debug.WriteLine($"Arrange method calls: {layoutVersion}");
 
             if (OnSource(x => x.None()))
             {
@@ -177,7 +176,6 @@ namespace Zebble
 
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
-            Debug.WriteLine($"Arrange mapping method calls: {layoutVersion}");
 
             if (layoutVersion != LayoutVersion) return;
 
@@ -200,7 +198,7 @@ namespace Zebble
             var counter = -1;
             foreach (var vm in OnSource(x => x.ToArray()))
             {
-                //if (layoutVersion != LayoutVersion) return;
+                if (layoutVersion != LayoutVersion) return;
 
                 counter++;
 
@@ -214,7 +212,7 @@ namespace Zebble
                         position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
                     }
 
-                    //if (position is null) break;
+                    if (position is null) break;
                 }
 
                 var from = position.From;
@@ -227,11 +225,16 @@ namespace Zebble
                 if (item is null)
                 {
                     var requiredType = GetViewType(vm);
-                    item = mapping.FirstOrDefault(x => !x.IsInUse && x.View.GetType() == requiredType);
+                    item = mapping.Where(x => !x.IsInUse && x.View.GetType() == requiredType)
+                        .OrderByDescending(x => x.Item == vm)
+                        .ThenByDescending(x => Math.Abs((int)x.View.ActualY - (int)position.From)).FirstOrDefault();
 
                     item ??= new ViewItem(CreateItemView(vm));
                     if (item.Item != vm)
+                    {
                         item.Load(vm);
+
+                    }
 
                     //await item.View.ReusedInCollectionView.Raise();
                 }
@@ -240,8 +243,6 @@ namespace Zebble
                 item.IsInUse = true;
                 if (Horizontal) item.View.X.Set(position.From);
                 else item.View.Y.Set(position.From);
-
-                Debug.WriteLine($"Set vertical align: {position.From}");
 
 
                 await item.View.IgnoredAsync(false);
@@ -252,7 +253,7 @@ namespace Zebble
             }
         }
 
-        protected virtual float OverRenderBuffer() => 50;
+        protected virtual float OverRenderBuffer() => 200;
 
         protected virtual EmptyTemplate FindEmptyTemplate() => emptyTemplate ??= FindDescendent<EmptyTemplate>();
     }
