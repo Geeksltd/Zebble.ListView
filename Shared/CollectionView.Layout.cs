@@ -231,10 +231,7 @@ namespace Zebble
 
                     item ??= new ViewItem(CreateItemView(vm));
                     if (item.Item != vm)
-                    {
                         item.Load(vm);
-
-                    }
 
                     //await item.View.ReusedInCollectionView.Raise();
                 }
