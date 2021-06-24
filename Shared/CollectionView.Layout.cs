@@ -15,6 +15,8 @@ namespace Zebble
         EmptyTemplate emptyTemplate;
         DateTime nextLayoutSchedule;
 
+        string layoutOrigin;
+
         public class EmptyTemplate : Canvas { }
 
         protected virtual View CreateItemView(TSource viewModel)
@@ -59,11 +61,15 @@ namespace Zebble
             {
                 HandleScrolling();
                 await UpdateLayout();
+
+                await UpdateLayoutCompleted.Raise();
             });
         }
 
         internal async Task ReLayoutIfShown(string origin, View view = null)
         {
+            layoutOrigin = origin;
+
             if (!IsShown) return;
             if (LocalTime.Now < nextLayoutSchedule)
                 return;
@@ -75,7 +81,6 @@ namespace Zebble
                 return;
 
             await UpdateLayout();
-
         }
 
         //Add a wrapper method to log origins of this
@@ -104,6 +109,18 @@ namespace Zebble
                     await BatchArrange(layoutVersion, "From UpdateLayout");
                 }
             }
+
+            await RaiseLayoutChanged();
+        }
+
+        async Task RaiseLayoutChanged()
+        {
+            if (Horizontal && !layoutOrigin.ToLower().Contains("width"))
+                await LayoutChanged.Raise();
+            else if (!Horizontal && !layoutOrigin.ToLower().Contains("height"))
+                await LayoutChanged.Raise();
+            else
+                await Task.CompletedTask;
         }
 
         float GetTotalSize()
@@ -129,7 +146,6 @@ namespace Zebble
 
         protected virtual async Task Arrange(Guid layoutVersion)
         {
-
             if (OnSource(x => x.None()))
             {
                 await LoadEmptyTemplate(layoutVersion);

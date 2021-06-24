@@ -12,6 +12,9 @@ namespace Zebble
         protected IEnumerable<TSource> source;
         RepeatDirection direction = RepeatDirection.Vertical;
 
+        public readonly AsyncEvent UpdateLayoutCompleted = new AsyncEvent();
+        public readonly AsyncEvent LayoutChanged = new AsyncEvent();
+
         TResult OnSource<TResult>(Func<IEnumerable<TSource>, TResult> query)
         {
             if (source is null) return default;

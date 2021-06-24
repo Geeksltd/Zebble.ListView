@@ -68,7 +68,6 @@ namespace Zebble
             .WithTimeout(TimeSpan.FromSeconds(1), timeoutAction: () => IsProcessingLazyLoading = false)
             .ContinueWith((t) => IsProcessingLazyLoading = false)
             .RunInParallel();
-
         }
 
         public async Task<bool> ScrollToItem(TSource viewModel, bool animate = false)
