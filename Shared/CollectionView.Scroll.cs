@@ -33,6 +33,7 @@ namespace Zebble
         {
             if (Scroller == null) return;
 
+            Scroller.ApiScrolledTo.Event += () => OnUserScrolled();
             Scroller.UserScrolledVertically.Event += () => OnUserScrolled();
             Scroller.UserScrolledHorizontally.Event += () => OnUserScrolled();
             Scroller.ScrollEnded.Event += () => OnUserScrolled(mandatory: true);
@@ -42,7 +43,6 @@ namespace Zebble
         {
             if (LocalTime.Now < nextScrollSchedule)
                 return;
-
 
             nextScrollSchedule = LocalTime.Now.AddMilliseconds(16);
             await Task.Delay(16);
@@ -86,27 +86,7 @@ namespace Zebble
             else
                 await Scroller.ScrollTo(offset.From, 0, animate);
 
-            await Task.Run(() => BatchArrange(LayoutVersion, "ScrollToItem"));
-            return true;
-        }
-
-        public async Task<bool> ScrollToItem(TSource viewModel, float margin, bool animate = false)
-        {
-            if (Scroller == null) return false;
-            if (source is null) return false;
-
-            var index = OnSource(x => x.OrEmpty().IndexOf(viewModel));
-            if (index == -1) return false;
-
-            var offset = ItemPositionOffsets.GetOrDefault(index);
-            if (offset == null) return false;
-
-            if (Horizontal)
-                await Scroller.ScrollTo(0, offset.From - margin, animate);
-            else
-                await Scroller.ScrollTo(offset.From - margin, 0, animate);
-
-            await Task.Run(() => BatchArrange(LayoutVersion, "ScrollToItem"));
+            await Arrange(LayoutVersion);
             return true;
         }
     }
