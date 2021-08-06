@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Tasks;
 using Olive;
 
@@ -15,7 +13,7 @@ namespace Zebble
         EmptyTemplate emptyTemplate;
         DateTime nextLayoutSchedule;
 
-        string layoutOrigin;
+        readonly List<string> layoutOrigins = new();
 
         public class EmptyTemplate : Canvas { }
 
@@ -68,7 +66,7 @@ namespace Zebble
 
         internal async Task ReLayoutIfShown(string origin, View view = null)
         {
-            layoutOrigin = origin;
+            layoutOrigins.Add(origin.ToLower());
 
             if (!IsShown) return;
             if (LocalTime.Now < nextLayoutSchedule)
@@ -115,12 +113,14 @@ namespace Zebble
 
         async Task RaiseLayoutChanged()
         {
-            if (Horizontal && !layoutOrigin.ToLower().Contains("width"))
+            if (Horizontal && layoutOrigins.Contains("source changed"))
                 await LayoutChanged.Raise();
-            else if (!Horizontal && !layoutOrigin.ToLower().Contains("height"))
+            else if (!Horizontal && layoutOrigins.Contains("source changed"))
                 await LayoutChanged.Raise();
             else
                 await Task.CompletedTask;
+
+            layoutOrigins.Clear();
         }
 
         float GetTotalSize()
