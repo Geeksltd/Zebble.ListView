@@ -214,7 +214,7 @@ namespace Zebble
             var counter = -1;
             foreach (var vm in OnSource(x => x.ToArray()))
             {
-                if (layoutVersion != LayoutVersion) return;
+                //if (layoutVersion != LayoutVersion) return;
 
                 counter++;
 
@@ -228,7 +228,7 @@ namespace Zebble
                         position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
                     }
 
-                    if (position is null) break;
+                    //if (position is null) break;
                 }
 
                 var from = position.From;
@@ -243,7 +243,8 @@ namespace Zebble
                     var requiredType = GetViewType(vm);
                     item = mapping.Where(x => !x.IsInUse && x.View.GetType() == requiredType)
                         .OrderByDescending(x => x.Item == vm)
-                        .ThenByDescending(x => Math.Abs((int)x.View.ActualY - (int)position.From)).FirstOrDefault();
+                        //.ThenByDescending(x => Math.Abs((int)x.View.ActualY - (int)position.From))
+                        .FirstOrDefault();
 
                     item ??= new ViewItem(CreateItemView(vm));
                     if (item.Item != vm)

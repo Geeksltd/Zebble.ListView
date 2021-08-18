@@ -2,8 +2,6 @@
 using System.Threading.Tasks;
 using System.Linq;
 using Olive;
-using System.Diagnostics;
-using System.Threading;
 
 namespace Zebble
 {
@@ -65,7 +63,7 @@ namespace Zebble
             IsProcessingLazyLoading = true;
 
             Task.Run(() => BatchArrange(LayoutVersion, "From OnUserScrolled"))
-            .WithTimeout(TimeSpan.FromSeconds(1), timeoutAction: () => IsProcessingLazyLoading = false)
+            .WithTimeout(1.Seconds(), timeoutAction: () => IsProcessingLazyLoading = false)
             .ContinueWith((t) => IsProcessingLazyLoading = false)
             .RunInParallel();
         }
