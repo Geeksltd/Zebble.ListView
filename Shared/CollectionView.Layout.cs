@@ -27,7 +27,7 @@ namespace Zebble
 
             result.SetViewModelValue(viewModel);
 
-            result.Ignored = true;
+            result.IgnoredAsync().GetAwaiter();
 
             if (result.Css.Width is Length.AutoLengthRequest auto && auto.Strategy == Length.AutoStrategy.Container)
                 result.Css.Width(new Length.AutoLengthRequest(Length.AutoStrategy.Content));
@@ -155,9 +155,11 @@ namespace Zebble
                 var mapping = ViewItems().Select(v => new ViewItem(v)).ToArray();
                 await Arrange(mapping, layoutVersion);
 
-                foreach (var item in mapping.Except(x => x.IsInUse).ToArray())
+                var itemsToIgnore = mapping.Where(x => !x.IsInUse).ToArray();
+                foreach (var item in itemsToIgnore)
                 {
                     if (LayoutVersion != layoutVersion) return;
+
                     await item.View.IgnoredAsync();
                 }
             }
@@ -192,7 +194,6 @@ namespace Zebble
 
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
-
             if (layoutVersion != LayoutVersion) return;
 
             var visibleRange = GetVisibleRange();
@@ -214,7 +215,7 @@ namespace Zebble
             var counter = -1;
             foreach (var vm in OnSource(x => x.ToArray()))
             {
-                //if (layoutVersion != LayoutVersion) return;
+                if (layoutVersion != LayoutVersion) return;
 
                 counter++;
 
@@ -228,7 +229,7 @@ namespace Zebble
                         position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
                     }
 
-                    //if (position is null) break;
+                    if (position is null) break;
                 }
 
                 var from = position.From;
@@ -243,7 +244,7 @@ namespace Zebble
                     var requiredType = GetViewType(vm);
                     item = mapping.Where(x => !x.IsInUse && x.View.GetType() == requiredType)
                         .OrderByDescending(x => x.Item == vm)
-                        //.ThenByDescending(x => Math.Abs((int)x.View.ActualY - (int)position.From))
+                        .ThenByDescending(x => Math.Abs((int)x.View.ActualY - (int)position.From))
                         .FirstOrDefault();
 
                     item ??= new ViewItem(CreateItemView(vm));
@@ -253,17 +254,17 @@ namespace Zebble
                     //await item.View.ReusedInCollectionView.Raise();
                 }
 
-
                 item.IsInUse = true;
                 if (Horizontal) item.View.X.Set(position.From);
                 else item.View.Y.Set(position.From);
 
+                Thread.UI.Post(async () =>
+                {
+                    await item.View.IgnoredAsync(false);
 
-                await item.View.IgnoredAsync(false);
-
-
-                if (item.View.Parent == null)
-                    await Add(item.View);
+                    if (item.View.Parent == null)
+                        await Add(item.View);
+                });
             }
         }
 
