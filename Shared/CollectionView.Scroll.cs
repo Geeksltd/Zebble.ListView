@@ -31,10 +31,19 @@ namespace Zebble
         {
             if (Scroller == null) return;
 
-            Scroller.ApiScrolledTo.Event += () => OnUserScrolled();
+            Scroller.ApiScrolledTo.Event += () => OnApiScrolledTo();
             Scroller.UserScrolledVertically.Event += () => OnUserScrolled();
             Scroller.UserScrolledHorizontally.Event += () => OnUserScrolled();
             Scroller.ScrollEnded.Event += () => OnUserScrolled(mandatory: true);
+        }
+
+        void OnApiScrolledTo()
+        {
+            if ((Scroller.ScrollY == 0 && Scroller.ScrollX == 0) ||
+                (Scroller.ScrollY == 0 && Scroller.ScrollX.AlmostEquals(Scroller.CalculateContentSize().Width)))
+                OnUserScrolled(mandatory: true);
+            else
+                OnUserScrolled();
         }
 
         async void OnUserScrolled(bool mandatory = false)
