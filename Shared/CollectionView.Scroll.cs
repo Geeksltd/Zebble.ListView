@@ -31,22 +31,22 @@ namespace Zebble
         {
             if (Scroller == null) return;
 
-            Scroller.ApiScrolledTo.Event += () => OnApiScrolledTo();
-            Scroller.UserScrolledVertically.Event += () => OnUserScrolled();
-            Scroller.UserScrolledHorizontally.Event += () => OnUserScrolled();
-            Scroller.ScrollEnded.Event += () => OnUserScrolled(mandatory: true);
+            Scroller.ApiScrolledTo.Event += async () => await OnApiScrolledTo();
+            Scroller.UserScrolledVertically.Event += async () => await OnUserScrolled();
+            Scroller.UserScrolledHorizontally.Event += async () => await  OnUserScrolled();
+            Scroller.ScrollEnded.Event += async () => await OnUserScrolled(mandatory: true);
         }
 
-        void OnApiScrolledTo()
+        async Task OnApiScrolledTo()
         {
             if ((Scroller.ScrollY == 0 && Scroller.ScrollX == 0) ||
                 (Scroller.ScrollY == 0 && Scroller.ScrollX.AlmostEquals(Scroller.CalculateContentSize().Width)))
-                OnUserScrolled(mandatory: true);
+                await OnUserScrolled(mandatory: true);
             else
-                OnUserScrolled();
+                await OnUserScrolled();
         }
 
-        async void OnUserScrolled(bool mandatory = false)
+        async Task OnUserScrolled(bool mandatory = false, bool shouldWait = false)
         {
             if (LocalTime.Now < nextScrollSchedule)
                 return;
@@ -71,10 +71,17 @@ namespace Zebble
 
             IsProcessingLazyLoading = true;
 
-            Task.Run(() => BatchArrange(LayoutVersion, "From OnUserScrolled"))
+            if (!shouldWait)
+                UpdateLayoutWhileScrollChanged().RunInParallel();
+            else
+                await UpdateLayoutWhileScrollChanged();
+        }
+
+        Task UpdateLayoutWhileScrollChanged()
+        {
+            return Task.Run(() => BatchArrange(LayoutVersion, "From OnUserScrolled"))
             .WithTimeout(1.Seconds(), timeoutAction: () => IsProcessingLazyLoading = false)
-            .ContinueWith((t) => IsProcessingLazyLoading = false)
-            .RunInParallel();
+            .ContinueWith((t) => IsProcessingLazyLoading = false);
         }
 
         public async Task<bool> ScrollToItem(TSource viewModel, bool animate = false)
@@ -96,5 +103,19 @@ namespace Zebble
             await Arrange(LayoutVersion);
             return true;
         }
+
+        public async Task ScrollToPosition(float offset, bool shouldScrollEnded = false, bool animate = false)
+        {
+            if (Scroller == null) return;
+
+            if (Horizontal)
+                await Scroller.ScrollTo(0, offset, animate);
+            else
+                await Scroller.ScrollTo(offset, 0, animate);
+
+            if (shouldScrollEnded)
+                await OnUserScrolled (mandatory: true, shouldWait: true);
+        }
+
     }
 }
