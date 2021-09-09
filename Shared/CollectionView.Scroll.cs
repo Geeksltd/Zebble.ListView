@@ -33,7 +33,7 @@ namespace Zebble
 
             Scroller.ApiScrolledTo.Event += async () => await OnApiScrolledTo();
             Scroller.UserScrolledVertically.Event += async () => await OnUserScrolled();
-            Scroller.UserScrolledHorizontally.Event += async () => await  OnUserScrolled();
+            Scroller.UserScrolledHorizontally.Event += async () => await OnUserScrolled();
             Scroller.ScrollEnded.Event += async () => await OnUserScrolled(mandatory: true);
         }
 
@@ -114,8 +114,9 @@ namespace Zebble
                 await Scroller.ScrollTo(offset, 0, animate);
 
             if (shouldScrollEnded)
-                await OnUserScrolled (mandatory: true, shouldWait: true);
+                Thread.UI.Post(async () => await OnUserScrolled(mandatory: true, shouldWait: true));
         }
 
+        public void RefreshLayout() => Thread.UI.Post(async () => await UpdateLayoutWhileScrollChanged());
     }
 }
