@@ -9,13 +9,16 @@ namespace Zebble
 {
     partial class CollectionView<TSource>
     {
-        Dictionary<int, Range<float>> ItemPositionOffsets;
+        ConcurrentDictionary<int, Range<float>> ItemPositionOffsets;
         ConcurrentDictionary<Type, Measurement> TemplateMeasuresCache = new();
         ConcurrentDictionary<Type, Task<View>> TemplateRendering = new();
+        bool IsCreatingItem;
 
         protected virtual async Task MeasureOffsets(Guid layoutVersion)
         {
-            var newOffsets = new Dictionary<int, Range<float>>(OnSource(x => x.Count()));
+            var numProcs = Environment.ProcessorCount;
+            var concurrencyLevel = numProcs * 2;
+            var newOffsets = new ConcurrentDictionary<int, Range<float>>(concurrencyLevel, OnSource(x => x.Count()));
             
             var counter = 0;
              
@@ -34,8 +37,6 @@ namespace Zebble
             }
             ItemPositionOffsets = newOffsets;
         }
-
-        bool IsCreatingItem;
 
         async Task<Measurement> Measure(TSource item)
         {

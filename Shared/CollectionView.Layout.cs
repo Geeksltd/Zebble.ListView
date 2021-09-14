@@ -99,16 +99,19 @@ namespace Zebble
             }
             else
             {
-                await MeasureOffsets(layoutVersion);
+                await UpdateMeasureOffsets(layoutVersion);
                 if (layoutVersion == LayoutVersion)
-                {
-                    (Horizontal ? Width : Height).Set(GetTotalSize());
-
                     await BatchArrange(layoutVersion, "From UpdateLayout");
-                }
             }
 
             await RaiseLayoutChanged();
+        }
+
+        internal async Task UpdateMeasureOffsets(Guid layoutVersion)
+        {
+            await MeasureOffsets(layoutVersion);
+            if (layoutVersion == LayoutVersion)
+                (Horizontal ? Width : Height).Set(GetTotalSize());
         }
 
         async Task RaiseLayoutChanged()
@@ -195,6 +198,8 @@ namespace Zebble
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
             if (layoutVersion != LayoutVersion) return;
+            if (ItemPositionOffsets == null) 
+                await UpdateMeasureOffsets(layoutVersion);
 
             var visibleRange = GetVisibleRange();
 
