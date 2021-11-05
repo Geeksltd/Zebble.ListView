@@ -111,7 +111,11 @@ namespace Zebble
             if (Horizontal)
                 await Scroller.ScrollTo(0, offset, animate);
             else
+            {
+                if (Scroller.IsContentHeightShorterThanActualHeight())
+                    offset = 0;
                 await Scroller.ScrollTo(offset, 0, animate);
+            }
 
             if (shouldScrollEnded)
                 Thread.UI.Post(async () => await OnUserScrolled(mandatory: true, shouldWait: true));
