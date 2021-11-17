@@ -95,8 +95,11 @@ namespace Zebble
         {
             await base.OnPreRender();
 
-            Panning.Handle(OnPanning);
-            PanFinished.Handle(OnPanFinished);
+            if (RightSlideIn.AllChildren.Any() || LeftSlideIn.AllChildren.Any())
+            {
+               Panning.Handle(OnPanning);
+               PanFinished.Handle(OnPanFinished);
+            }
         }
 
         async Task ShowRightSlideInContent(double distance)
