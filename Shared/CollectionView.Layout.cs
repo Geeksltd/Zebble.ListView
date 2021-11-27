@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Olive;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using Olive;
 
 namespace Zebble
 {
@@ -11,7 +12,7 @@ namespace Zebble
         Guid LayoutVersion;
 
         EmptyTemplate emptyTemplate;
-        DateTime nextLayoutSchedule;
+        //DateTime nextLayoutSchedule;
 
         readonly List<string> layoutOrigins = new();
 
@@ -69,14 +70,14 @@ namespace Zebble
             layoutOrigins.Add(origin.ToLower());
 
             if (!IsShown) return;
-            if (LocalTime.Now < nextLayoutSchedule)
-                return;
+            //if (LocalTime.Now < nextLayoutSchedule)
+            //    return;
 
-            nextLayoutSchedule = LocalTime.Now.AddMilliseconds(16);
-            await Task.Delay(16);
+            //nextLayoutSchedule = LocalTime.Now.AddMilliseconds(16);
+            //await Task.Delay(16);
 
-            if (LocalTime.Now < nextLayoutSchedule)
-                return;
+            //if (LocalTime.Now < nextLayoutSchedule)
+            //    return;
 
             await UpdateLayout();
         }
@@ -84,27 +85,36 @@ namespace Zebble
         //Add a wrapper method to log origins of this
         internal Task ReLayoutIfShown() => IsShown ? UpdateLayout() : Task.CompletedTask;
 
+        SemaphoreSlim Semaphore = new SemaphoreSlim(1);
         async Task UpdateLayout()
         {
             if (IsCreatingItem)
                 return;
 
-            var layoutVersion = LayoutVersion = Guid.NewGuid();
-
-            if (OnSource(x => x.None()))
+            try
             {
-                await LoadEmptyTemplate(layoutVersion);
-                if (layoutVersion == LayoutVersion)
-                    ResizeToEmptyTemplate();
-            }
-            else
-            {
-                await UpdateMeasureOffsets(layoutVersion);
-                if (layoutVersion == LayoutVersion)
-                    await BatchArrange(layoutVersion, "From UpdateLayout");
-            }
+                await Semaphore.WaitAsync();
+                var layoutVersion = LayoutVersion = Guid.NewGuid();
 
-            await RaiseLayoutChanged();
+                if (OnSource(x => x.None()))
+                {
+                    await LoadEmptyTemplate(layoutVersion);
+                    if (layoutVersion == LayoutVersion)
+                        ResizeToEmptyTemplate();
+                }
+                else
+                {
+                    await UpdateMeasureOffsets(layoutVersion);
+                    if (layoutVersion == LayoutVersion)
+                        await BatchArrange(layoutVersion, "From UpdateLayout");
+                }
+
+                await RaiseLayoutChanged();
+            }
+            finally
+            {
+                Semaphore.Release();
+            }
         }
 
         internal async Task UpdateMeasureOffsets(Guid layoutVersion)
@@ -198,7 +208,7 @@ namespace Zebble
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
             if (layoutVersion != LayoutVersion) return;
-            if (ItemPositionOffsets == null) 
+            if (ItemPositionOffsets == null)
                 await UpdateMeasureOffsets(layoutVersion);
 
             var visibleRange = GetVisibleRange();

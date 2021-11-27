@@ -63,7 +63,7 @@ namespace Zebble
             }
         }
 
-        protected virtual void OnSourceChanged() => ReLayoutIfShown("Source Changed");
+        protected virtual void OnSourceChanged() => ReLayoutIfShown("Source Changed").GetAwaiter().GetResult();
 
         /// <summary>
         /// Gets the type of the view to render or recycle for the specified view model item.
