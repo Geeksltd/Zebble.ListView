@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Olive;
 using Zebble.Mvvm;
 
@@ -50,8 +51,6 @@ namespace Zebble
                 if (source is IBindableCollection oldVm)
                     oldVm.Changed -= OnSourceChanged;
 
-                var firstTime = source is null;
-
                 if (value is IBindableCollection newVm)
                 {
                     source = value;
@@ -63,7 +62,7 @@ namespace Zebble
             }
         }
 
-        protected virtual void OnSourceChanged() => ReLayoutIfShown("Source Changed").GetAwaiter().GetResult();
+        protected virtual void OnSourceChanged() => ReLayoutIfShown("SourceChanged").GetAwaiter().GetResult();
 
         /// <summary>
         /// Gets the type of the view to render or recycle for the specified view model item.

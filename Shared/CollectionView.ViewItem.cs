@@ -19,19 +19,12 @@ namespace Zebble
 
             internal void Load(TSource vm)
             {
-                //Item = vm;
-                //View.SetViewModelValue(vm);
-                //View.RefreshBindings();
-
-                //see if we can notice a change
-                View.Data.Add("IsBeingRecycled", true);
                 View.ChangeInBatch(() =>
                 {
                     Item = vm;
                     View.SetViewModelValue(vm);
                     View.RefreshBindings();
                 });
-                View.Data.Remove("IsBeingRecycled");
             }
         }
     }

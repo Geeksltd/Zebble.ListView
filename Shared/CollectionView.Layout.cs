@@ -1,20 +1,19 @@
 ﻿using Olive;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zebble
 {
     partial class CollectionView<TSource>
     {
+        bool Scrolling;
+        bool UpdatingFromSource;
+        bool DontUpdate;
+
         Guid LayoutVersion;
-
         EmptyTemplate emptyTemplate;
-        //DateTime nextLayoutSchedule;
 
-        readonly List<string> layoutOrigins = new();
 
         public class EmptyTemplate : Canvas { }
 
@@ -59,61 +58,61 @@ namespace Zebble
             await WhenShown(async () =>
             {
                 HandleScrolling();
-                await UpdateLayout();
-
-                await UpdateLayoutCompleted.Raise();
+                await ReLayoutIfShown("SourceChanged");
+                //await UpdateLayoutCompleted.Raise();
             });
         }
 
+        public void RefreshLayout() => Thread.UI.Post(async () => await BatchArrange(LayoutVersion));
+
+
         internal async Task ReLayoutIfShown(string origin, View view = null)
         {
-            layoutOrigins.Add(origin.ToLower());
+            if (!IsShown)
+                return;
 
-            if (!IsShown) return;
-            //if (LocalTime.Now < nextLayoutSchedule)
-            //    return;
+            if (origin == "SourceChanged")
+            {
+                DontUpdate = true;
 
-            //nextLayoutSchedule = LocalTime.Now.AddMilliseconds(16);
-            //await Task.Delay(16);
+                while(UpdatingFromSource)
+                    await Task.Delay(10);
 
-            //if (LocalTime.Now < nextLayoutSchedule)
-            //    return;
+                UpdatingFromSource = true;
+
+                await UpdateLayout();
+
+                UpdatingFromSource = false;
+                DontUpdate = false;
+
+                await LayoutChanged.Raise();
+                return;
+            }
+
+            if (Scrolling || DontUpdate)
+                return;
 
             await UpdateLayout();
         }
 
-        //Add a wrapper method to log origins of this
-        internal Task ReLayoutIfShown() => IsShown ? UpdateLayout() : Task.CompletedTask;
-
-        SemaphoreSlim Semaphore = new SemaphoreSlim(1);
         async Task UpdateLayout()
         {
-            if (IsCreatingItem)
-                return;
+            while (IsCreatingItem)
+                await Task.Delay(10);
 
-            try
+            var layoutVersion = LayoutVersion = Guid.NewGuid();
+
+            if (OnSource(x => x.None()))
             {
-                await Semaphore.WaitAsync();
-                var layoutVersion = LayoutVersion = Guid.NewGuid();
-
-                if (OnSource(x => x.None()))
-                {
-                    await LoadEmptyTemplate(layoutVersion);
-                    if (layoutVersion == LayoutVersion)
-                        ResizeToEmptyTemplate();
-                }
-                else
-                {
-                    await UpdateMeasureOffsets(layoutVersion);
-                    if (layoutVersion == LayoutVersion)
-                        await BatchArrange(layoutVersion, "From UpdateLayout");
-                }
-
-                await RaiseLayoutChanged();
+                await LoadEmptyTemplate(layoutVersion);
+                if (layoutVersion == LayoutVersion)
+                    ResizeToEmptyTemplate();
             }
-            finally
+            else
             {
-                Semaphore.Release();
+                await UpdateMeasureOffsets(layoutVersion);
+                if (layoutVersion == LayoutVersion)
+                    await BatchArrange(layoutVersion);
             }
         }
 
@@ -122,18 +121,6 @@ namespace Zebble
             await MeasureOffsets(layoutVersion);
             if (layoutVersion == LayoutVersion)
                 (Horizontal ? Width : Height).Set(GetTotalSize());
-        }
-
-        async Task RaiseLayoutChanged()
-        {
-            if (Horizontal && layoutOrigins.Contains("source changed"))
-                await LayoutChanged.Raise();
-            else if (!Horizontal && layoutOrigins.Contains("source changed"))
-                await LayoutChanged.Raise();
-            else
-                await Task.CompletedTask;
-
-            layoutOrigins.Clear();
         }
 
         float GetTotalSize()
@@ -148,11 +135,14 @@ namespace Zebble
         {
             var template = FindEmptyTemplate();
 
-            if (template != null) await template.IgnoredAsync(false);
+            if (template != null) 
+                await template.IgnoredAsync(false);
 
             foreach (var item in CurrentChildren.Except(template))
             {
-                if (LayoutVersion != layoutVersion) return;
+                if (LayoutVersion != layoutVersion) 
+                    return;
+
                 await item.IgnoredAsync();
             }
         }
@@ -171,7 +161,8 @@ namespace Zebble
                 var itemsToIgnore = mapping.Where(x => !x.IsInUse).ToArray();
                 foreach (var item in itemsToIgnore)
                 {
-                    if (LayoutVersion != layoutVersion) return;
+                    if (LayoutVersion != layoutVersion) 
+                        return;
 
                     await item.View.IgnoredAsync();
                 }
@@ -207,7 +198,9 @@ namespace Zebble
 
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
-            if (layoutVersion != LayoutVersion) return;
+            if (layoutVersion != LayoutVersion) 
+                return;
+
             if (ItemPositionOffsets == null)
                 await UpdateMeasureOffsets(layoutVersion);
 
@@ -230,7 +223,8 @@ namespace Zebble
             var counter = -1;
             foreach (var vm in OnSource(x => x.ToArray()))
             {
-                if (layoutVersion != LayoutVersion) return;
+                if (layoutVersion != LayoutVersion) 
+                    return;
 
                 counter++;
 
@@ -244,14 +238,18 @@ namespace Zebble
                         position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
                     }
 
-                    if (position is null) break;
+                    if (position is null) 
+                        break;
                 }
 
                 var from = position.From;
                 var to = position.To;
 
-                if (position.From > visibleRange.To) break;
-                if (position.To < visibleRange.From) continue;
+                if (position.From > visibleRange.To) 
+                    break;
+
+                if (position.To < visibleRange.From) 
+                    continue;
 
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
                 if (item is null)
@@ -273,13 +271,11 @@ namespace Zebble
                 if (Horizontal) item.View.X.Set(position.From);
                 else item.View.Y.Set(position.From);
 
-                Thread.UI.Post(async () =>
-                {
+                if (item.View.Ignored)
                     await item.View.IgnoredAsync(false);
 
-                    if (item.View.Parent == null)
-                        await Add(item.View);
-                });
+                if (item.View.Parent == null)
+                    await Add(item.View);
             }
         }
 
