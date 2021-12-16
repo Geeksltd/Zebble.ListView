@@ -97,9 +97,6 @@ namespace Zebble
 
         async Task UpdateLayout()
         {
-            while (IsCreatingItem)
-                await Task.Delay(10);
-
             var layoutVersion = LayoutVersion = Guid.NewGuid();
 
             if (OnSource(x => x.None()))

@@ -48,16 +48,26 @@ namespace Zebble
                 await OnUserScrolled();
         }
 
+        bool IsArraging;
+
         async Task OnUserScrolled()
         {
+            Scrolling = true;
+
             if (IsDisposing)
                 return;
 
             var localLastUpdateInvokedAt = LastUpdateInvokedAt = DateTime.UtcNow;
 
-            if (!Scrolling)
+            if (!IsArraging)
             {
+                IsArraging = true;
+
                 await BatchArrange(LayoutVersion);
+
+                IsArraging = false;
+                Scrolling = false;
+
                 return;
             }
 
@@ -65,10 +75,11 @@ namespace Zebble
             if (LastUpdateInvokedAt > localLastUpdateInvokedAt)
                 return;
 
-            Scrolling = true;
+            IsArraging = true;
 
             await BatchArrange(LayoutVersion);
 
+            IsArraging = false;
             Scrolling = false;
         }
 

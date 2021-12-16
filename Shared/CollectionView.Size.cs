@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Olive;
@@ -10,18 +9,30 @@ namespace Zebble
     partial class CollectionView<TSource>
     {
         ConcurrentDictionary<int, Range<float>> ItemPositionOffsets;
-        ConcurrentDictionary<Type, Measurement> TemplateMeasuresCache = new();
-        ConcurrentDictionary<Type, Task<View>> TemplateRendering = new();
-        bool IsCreatingItem;
+        View MeasurementView;
 
         protected virtual async Task MeasureOffsets(Guid layoutVersion)
         {
+            if (MeasurementView == null)
+            {
+                var firstItem = Source.First();
+                var type = GetViewType(firstItem);
+
+                if (!type.IsA<ITemplate>())
+                    throw new Exception(type.GetProgrammingName() + " does not implement ITemplate.");
+
+                MeasurementView = type.CreateInstance<View>();
+                MeasurementView.SetViewModelValue(firstItem);
+                MeasurementView.Ignored = true;
+                await Add(MeasurementView);
+            }
+
             var numProcs = Environment.ProcessorCount;
             var concurrencyLevel = numProcs * 2;
             var newOffsets = new ConcurrentDictionary<int, Range<float>>(concurrencyLevel, OnSource(x => x.Count()));
-            
+
             var counter = 0;
-             
+
             var from = Horizontal ? Padding.Left() : Padding.Top();
 
             foreach (var item in OnSource(x => x.ToArray()))
@@ -40,33 +51,16 @@ namespace Zebble
 
         async Task<Measurement> Measure(TSource item)
         {
-            var actual = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
+            var actual = ViewItems().Except(MeasurementView).FirstOrDefault(x => x.GetViewModelValue() == item);
             if (actual != null)
             {
                 return new Measurement(Direction, actual);
             }
             else
             {
-                var viewType = GetViewType(item);
-
-                if (TemplateMeasuresCache.TryGetValue(viewType, out var result))
-                    return result;
-                else
-                {
-                    var rendering = TemplateRendering.GetOrAdd(viewType, async t =>
-                    {
-                        try
-                        {
-                            IsCreatingItem = true;
-                            return await Add(CreateItemView(item));
-                        }
-                        finally
-                        {
-                            IsCreatingItem = false;
-                        }
-                    });
-                    return TemplateMeasuresCache[viewType] = new Measurement(Direction, await rendering);
-                }
+                MeasurementView.SetViewModelValue(item);
+                MeasurementView.RefreshBindings();
+                return new Measurement(Direction, MeasurementView);
             }
         }
 
