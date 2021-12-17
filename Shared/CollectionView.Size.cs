@@ -24,6 +24,7 @@ namespace Zebble
                 MeasurementView = type.CreateInstance<View>();
                 MeasurementView.SetViewModelValue(firstItem);
                 MeasurementView.Ignored = true;
+                MeasurementView.Id = "MeasurementView";
                 await Add(MeasurementView);
             }
 
@@ -51,7 +52,7 @@ namespace Zebble
 
         async Task<Measurement> Measure(TSource item)
         {
-            var actual = ViewItems().Except(MeasurementView).FirstOrDefault(x => x.GetViewModelValue() == item);
+            var actual = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
             if (actual != null)
             {
                 return new Measurement(Direction, actual);

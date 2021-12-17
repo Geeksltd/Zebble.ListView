@@ -48,7 +48,7 @@ namespace Zebble
             return result;
         }
 
-        protected virtual View[] ViewItems() => AllChildren.Except(FindEmptyTemplate()).ToArray();
+        protected virtual View[] ViewItems() => AllChildren.Except(FindEmptyTemplate(), MeasurementView).ToArray();
 
         public override async Task OnRendered()
         {
@@ -75,7 +75,7 @@ namespace Zebble
             {
                 DontUpdate = true;
 
-                while(UpdatingFromSource)
+                while (UpdatingFromSource)
                     await Task.Delay(10);
 
                 UpdatingFromSource = true;
@@ -132,12 +132,12 @@ namespace Zebble
         {
             var template = FindEmptyTemplate();
 
-            if (template != null) 
+            if (template != null)
                 await template.IgnoredAsync(false);
 
             foreach (var item in CurrentChildren.Except(template))
             {
-                if (LayoutVersion != layoutVersion) 
+                if (LayoutVersion != layoutVersion)
                     return;
 
                 await item.IgnoredAsync();
@@ -158,7 +158,7 @@ namespace Zebble
                 var itemsToIgnore = mapping.Where(x => !x.IsInUse).ToArray();
                 foreach (var item in itemsToIgnore)
                 {
-                    if (LayoutVersion != layoutVersion) 
+                    if (LayoutVersion != layoutVersion)
                         return;
 
                     await item.View.IgnoredAsync();
@@ -195,7 +195,7 @@ namespace Zebble
 
         async Task Arrange(ViewItem[] mapping, Guid layoutVersion)
         {
-            if (layoutVersion != LayoutVersion) 
+            if (layoutVersion != LayoutVersion)
                 return;
 
             if (ItemPositionOffsets == null)
@@ -220,7 +220,7 @@ namespace Zebble
             var counter = -1;
             foreach (var vm in OnSource(x => x.ToArray()))
             {
-                if (layoutVersion != LayoutVersion) 
+                if (layoutVersion != LayoutVersion)
                     return;
 
                 counter++;
@@ -235,17 +235,17 @@ namespace Zebble
                         position = new Range<float>(firstItem.Value.From, firstItem.Value.To);
                     }
 
-                    if (position is null) 
+                    if (position is null)
                         break;
                 }
 
                 var from = position.From;
                 var to = position.To;
 
-                if (position.From > visibleRange.To) 
+                if (position.From > visibleRange.To)
                     break;
 
-                if (position.To < visibleRange.From) 
+                if (position.To < visibleRange.From)
                     continue;
 
                 var item = mapping.FirstOrDefault(v => v.Item == vm);
