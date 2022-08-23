@@ -54,7 +54,7 @@ namespace Zebble
         {
             if (!IsVertical)
             {
-                base.CreateInitialItems();
+                await base.CreateInitialItems();
                 return;
             }
 
