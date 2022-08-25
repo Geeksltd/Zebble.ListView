@@ -8,6 +8,7 @@ namespace Zebble
 {
     partial class CollectionView<TSource>
     {
+        public bool ShouldMeasureForAll { get; set; }
         ConcurrentDictionary<int, Range<float>> ItemPositionOffsets;
         View MeasurementView;
 
@@ -59,8 +60,11 @@ namespace Zebble
             }
             else
             {
-                MeasurementView.SetViewModelValue(item);
-                MeasurementView.RefreshBindings();
+                if (ShouldMeasureForAll)
+                {
+                    MeasurementView.SetViewModelValue(item);
+                    MeasurementView.RefreshBindings();
+                }
                 return new Measurement(Direction, MeasurementView);
             }
         }
