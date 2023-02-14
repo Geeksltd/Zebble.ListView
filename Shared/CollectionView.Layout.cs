@@ -99,17 +99,17 @@ namespace Zebble
         {
             var layoutVersion = LayoutVersion = Guid.NewGuid();
 
-            if (OnSource(x => x.None()))
-            {
-                await LoadEmptyTemplate(layoutVersion);
-                if (layoutVersion == LayoutVersion)
-                    ResizeToEmptyTemplate();
-            }
-            else
+            if (OnSource(x => x.Any()))
             {
                 await UpdateMeasureOffsets(layoutVersion);
                 if (layoutVersion == LayoutVersion)
                     await BatchArrange(layoutVersion);
+            }
+            else
+            {
+                await LoadEmptyTemplate(layoutVersion);
+                if (layoutVersion == LayoutVersion)
+                    ResizeToEmptyTemplate();
             }
         }
 
@@ -146,11 +146,7 @@ namespace Zebble
 
         protected virtual async Task Arrange(Guid layoutVersion)
         {
-            if (OnSource(x => x.None()))
-            {
-                await LoadEmptyTemplate(layoutVersion);
-            }
-            else
+            if (OnSource(x => x.Any()))
             {
                 var mapping = ViewItems().Select(v => new ViewItem(v)).ToArray();
                 await Arrange(mapping, layoutVersion);
@@ -164,6 +160,7 @@ namespace Zebble
                     await item.View.IgnoredAsync();
                 }
             }
+            else await LoadEmptyTemplate(layoutVersion);
         }
 
         Range<float> GetVisibleRange()
@@ -218,7 +215,7 @@ namespace Zebble
             mapping.Do(x => x.IsInUse = false);
 
             var counter = -1;
-            foreach (var vm in OnSource(x => x.ToArray()))
+            foreach (var vm in OnSource(x => x.ToArray()).OrEmpty())
             {
                 if (layoutVersion != LayoutVersion)
                     return;

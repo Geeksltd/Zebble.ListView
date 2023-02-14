@@ -37,7 +37,7 @@ namespace Zebble
 
             var from = Horizontal ? Padding.Left() : Padding.Top();
 
-            foreach (var item in OnSource(x => x.ToArray()))
+            foreach (var item in OnSource(x => x.ToArray()).OrEmpty())
             {
                 var measure = await Measure(item);
                 if (layoutVersion != LayoutVersion) return;
