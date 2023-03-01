@@ -1,1 +1,0 @@
-copy /y bin\Debug\uap10.0.18362\Zebble.*.* E:\Nuget\packages\zebble.listview\4.10.186\lib\uap10.0.18362
