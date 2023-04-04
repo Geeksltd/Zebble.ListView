@@ -10,24 +10,31 @@ namespace Zebble
     {
         public bool ShouldMeasureForAll { get; set; }
         ConcurrentDictionary<int, Range<float>> ItemPositionOffsets;
-        View MeasurementView;
+        ConcurrentDictionary<Type, View> MeasurementViews = new();
 
-        protected virtual async Task MeasureOffsets(Guid layoutVersion)
+        async Task CreateMeasurementViews()
         {
-            if (MeasurementView == null)
+            foreach (var template in Source.GroupBy(GetViewType))
             {
-                var firstItem = Source.First();
-                var type = GetViewType(firstItem);
+                if (MeasurementViews.ContainsKey(template.Key)) continue;
+
+                var type = template.Key;
 
                 if (!type.IsA<ITemplate>())
                     throw new Exception(type.GetProgrammingName() + " does not implement ITemplate.");
 
-                MeasurementView = type.CreateInstance<View>();
-                MeasurementView.SetViewModelValue(firstItem);
-                MeasurementView.Ignored = true;
-                MeasurementView.Id = "MeasurementView";
-                await Add(MeasurementView);
+                var view = type.CreateInstance<View>();
+                view.SetViewModelValue(template.First());
+                view.Ignored = true;
+                view.Id = "MeasurementView";
+                await Add(view);
+                MeasurementViews[type] = view;
             }
+        }
+
+        protected virtual async Task MeasureOffsets(Guid layoutVersion)
+        {
+            await CreateMeasurementViews();
 
             var numProcs = Environment.ProcessorCount;
             var concurrencyLevel = numProcs * 2;
@@ -60,12 +67,15 @@ namespace Zebble
             }
             else
             {
+                var view = MeasurementViews[GetViewType(item)];
+
                 if (ShouldMeasureForAll)
                 {
-                    MeasurementView.SetViewModelValue(item);
-                    MeasurementView.RefreshBindings();
+                    view.SetViewModelValue(item);
+                    view.RefreshBindings();
                 }
-                return new Measurement(Direction, MeasurementView);
+
+                return new Measurement(Direction, view);
             }
         }
 

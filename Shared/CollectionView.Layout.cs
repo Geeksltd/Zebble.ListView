@@ -48,7 +48,7 @@ namespace Zebble
             return result;
         }
 
-        protected virtual View[] ViewItems() => AllChildren.Except(FindEmptyTemplate(), MeasurementView).ToArray();
+        protected virtual View[] ViewItems() => AllChildren.Except(FindEmptyTemplate()).Except(MeasurementViews.Values).ToArray();
 
         public override async Task OnRendered()
         {
