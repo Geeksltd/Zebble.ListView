@@ -56,6 +56,8 @@ namespace Zebble
                     source = value;
                     newVm.Changed += OnSourceChanged;
                 }
+                else if (value is TSource[])
+                    source = value as TSource[];
                 else source = value.ToArray();
 
                 OnSourceChanged();
