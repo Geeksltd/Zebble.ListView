@@ -14,7 +14,6 @@ namespace Zebble
         Guid LayoutVersion;
         EmptyTemplate emptyTemplate;
 
-
         public class EmptyTemplate : Canvas { }
 
         protected virtual View CreateItemView(TSource viewModel)
@@ -64,7 +63,6 @@ namespace Zebble
         }
 
         public void RefreshLayout() => Thread.UI.Post(async () => await BatchArrange(LayoutVersion));
-
 
         internal async Task ReLayoutIfShown(string origin, View view = null)
         {
@@ -168,22 +166,22 @@ namespace Zebble
             var from = 0f;
             var to = float.MaxValue;
 
-            //if (!IsNested() && Scroller != null)
-            //{
-            //    if (Horizontal)
-            //    {
-            //        from = Scroller.ScrollX - (ActualX - Scroller.ActualX);
-            //        to = from + Scroller.ActualWidth;
-            //    }
-            //    else
-            //    {
-            //        from = Scroller.ScrollY - (ActualY - Scroller.ActualY);
-            //        to = from + Scroller.ActualHeight;
-            //    }
+            if (!IsNested() && Scroller != null)
+            {
+                if (Horizontal)
+                {
+                    from = Scroller.ScrollX - (ActualX - Scroller.ActualX);
+                    to = from + Scroller.ActualWidth;
+                }
+                else
+                {
+                    from = Scroller.ScrollY - (ActualY - Scroller.ActualY);
+                    to = from + Scroller.ActualHeight;
+                }
 
-            //    from = (from - OverRenderBuffer()).LimitMin(0);
-            //    to += OverRenderBuffer();
-            //}
+                from = (from - OverRenderBuffer()).LimitMin(0);
+                to += OverRenderBuffer();
+            }
 
             return new Range<float>(from, to);
         }

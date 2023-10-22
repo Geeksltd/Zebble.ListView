@@ -57,13 +57,14 @@ namespace Zebble
             if (IsDisposing)
                 return;
 
+            var layoutVersion = LayoutVersion = Guid.NewGuid();
             var localLastUpdateInvokedAt = LastUpdateInvokedAt = DateTime.UtcNow;
 
             if (!IsArraging)
             {
                 IsArraging = true;
 
-                await BatchArrange(LayoutVersion);
+                await BatchArrange(layoutVersion);
 
                 IsArraging = false;
                 Scrolling = false;
@@ -77,7 +78,7 @@ namespace Zebble
 
             IsArraging = true;
 
-            await BatchArrange(LayoutVersion);
+            await BatchArrange(layoutVersion);
 
             IsArraging = false;
             Scrolling = false;

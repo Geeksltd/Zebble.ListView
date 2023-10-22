@@ -1,7 +1,4 @@
-﻿using Olive;
-using System.Diagnostics;
-
-namespace Zebble
+﻿namespace Zebble
 {
     partial class CollectionView<TSource>
     {

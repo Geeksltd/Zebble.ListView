@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Olive;
-using Zebble.Mvvm;
 
 namespace Zebble
 {
@@ -50,7 +48,7 @@ namespace Zebble
 
                 if (source is IBindableCollection oldVm)
                     oldVm.Changed -= OnSourceChanged;
-
+                
                 if (value is IBindableCollection newVm)
                 {
                     source = value;
