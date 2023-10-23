@@ -170,12 +170,12 @@ namespace Zebble
             {
                 if (Horizontal)
                 {
-                    from = Scroller.ScrollX - (ActualX - Scroller.ActualX);
+                    from = Scroller.ScrollX - ActualX;
                     to = from + Scroller.ActualWidth;
                 }
                 else
                 {
-                    from = Scroller.ScrollY - (ActualY - Scroller.ActualY);
+                    from = Scroller.ScrollY - ActualY;
                     to = from + Scroller.ActualHeight;
                 }
 
