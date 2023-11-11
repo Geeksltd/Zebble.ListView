@@ -14,7 +14,7 @@
                 if (direction == RepeatDirection.Horizontal)
                 {
                     Margin = view.Margin.Left();
-                    Size = Margin + view.ActualWidth + view.Margin.Left();
+                    Size = Margin + view.ActualWidth + view.Margin.Right();
                 }
                 else
                 {
