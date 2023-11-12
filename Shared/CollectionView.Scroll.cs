@@ -20,8 +20,7 @@ namespace Zebble
                 if (scroller != null)
                     return scroller.IsDisposing ? null : scroller;
 
-                if (IsDisposing || Parent == null) return null;
-                throw new Exception("Lazy loaded list view must be inside a scroll view");
+                return null;
             }
         }
 
