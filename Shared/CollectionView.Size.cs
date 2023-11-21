@@ -46,7 +46,7 @@ namespace Zebble
 
             foreach (var item in OnSource(x => x.ToArray()).OrEmpty())
             {
-                var measure = await Measure(item);
+                var measure = Measure(item);
                 if (layoutVersion != LayoutVersion) return;
 
                 if (counter == 0) from += measure.Margin;
@@ -58,7 +58,7 @@ namespace Zebble
             ItemPositionOffsets = newOffsets;
         }
 
-        async Task<Measurement> Measure(TSource item)
+        Measurement Measure(TSource item)
         {
             var actual = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
             if (actual != null)

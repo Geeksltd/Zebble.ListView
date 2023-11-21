@@ -94,7 +94,7 @@ namespace Zebble
             set
             {
                 if (parent == null)
-                    Initialized.Handle(() => UpdateSource(value));
+                    Rendered.Handle(() => UpdateSource(value));
                 else
                 {
                     Log.For(this).Warning("To change a list view's data source at runtime, invoke UpdateSource() instead of setting DataSource property.");
