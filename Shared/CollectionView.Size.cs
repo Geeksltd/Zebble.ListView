@@ -8,6 +8,9 @@ namespace Zebble
 {
     partial class CollectionView<TSource>
     {
+        public float? ItemSize { get; set; }
+        public float? ItemMargin { get; set; }
+
         public bool ShouldMeasureForAll { get; set; }
         ConcurrentDictionary<int, Range<float>> ItemPositionOffsets;
         ConcurrentDictionary<Type, View> MeasurementViews = new();
@@ -34,7 +37,8 @@ namespace Zebble
 
         protected virtual async Task MeasureOffsets(Guid layoutVersion)
         {
-            await CreateMeasurementViews();
+            if (ItemSize is null)
+                await CreateMeasurementViews();
 
             var numProcs = Environment.ProcessorCount;
             var concurrencyLevel = numProcs * 2;
@@ -60,6 +64,8 @@ namespace Zebble
 
         Measurement Measure(TSource item)
         {
+            if (ItemSize.HasValue) return new Measurement { Margin = ItemMargin ?? 0, Size = ItemSize.Value };
+
             var actual = ViewItems().FirstOrDefault(x => x.GetViewModelValue() == item);
             if (actual != null)
             {
@@ -75,7 +81,9 @@ namespace Zebble
                     view.RefreshBindings();
                 }
 
-                return new Measurement(Direction, view);
+                var result = new Measurement(Direction, view);
+                Dialogs.Current.Alert("Set CollectionView.ItemSize to " + result.Size, GetFullPath());
+                return result;
             }
         }
 

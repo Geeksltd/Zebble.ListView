@@ -166,16 +166,19 @@ namespace Zebble
             var from = 0f;
             var to = float.MaxValue;
 
+            var actualY = WithAllParents().TakeWhile(x => !(x is ScrollView)).Sum(v => v.ActualY);
+            var actualX = WithAllParents().TakeWhile(x => !(x is ScrollView)).Sum(v => v.ActualX);
+
             if (!IsNested() && Scroller != null)
             {
                 if (Horizontal)
                 {
-                    from = Scroller.ScrollX - ActualX;
+                    from = Scroller.ScrollX - actualX;
                     to = from + Scroller.ActualWidth;
                 }
                 else
                 {
-                    from = Scroller.ScrollY - ActualY;
+                    from = Scroller.ScrollY - actualY;
                     to = from + Scroller.ActualHeight;
                 }
 
