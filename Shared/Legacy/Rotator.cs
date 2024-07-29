@@ -64,8 +64,10 @@
 
         TTemplate FindMiddleItem()
         {
+            if (IsDisposed) return null;
             var scrollMiddle = Scroller.ScrollY + ActualHeight / 2;
-            return List.ItemViews.WithMin(x => Math.Abs((x.ActualY + x.ActualHeight / 2) - scrollMiddle));
+            return List.ItemViews.OrEmpty()
+                .WithMin(x => Math.Abs((x.ActualY + x.ActualHeight / 2) - scrollMiddle));
         }
 
         void HighlightItem(TTemplate item)
