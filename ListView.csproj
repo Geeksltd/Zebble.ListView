@@ -52,7 +52,7 @@
     <Compile Include="Shared\**\*.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Zebble" Version="5.0.63" />
+    <PackageReference Include="Zebble" Version="5.1.0" />
   </ItemGroup>
   <ItemGroup>
     <None Remove=".gitignore" />
