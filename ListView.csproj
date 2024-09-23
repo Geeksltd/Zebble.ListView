@@ -52,7 +52,7 @@
     <Compile Include="Shared\**\*.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Zebble" Version="5.1.0" />
+    <PackageReference Include="Zebble" Version="5.1.2" />
   </ItemGroup>
   <ItemGroup>
     <None Remove=".gitignore" />
@@ -60,7 +60,7 @@
     <None Remove="README.md" />
     <None Remove="Zebble-LicenseAgreement.txt" />
   </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Running)'=='local'">
     <Exec Command="update-local-nuget-cache $(TargetDir)" />
   </Target>
 </Project>
